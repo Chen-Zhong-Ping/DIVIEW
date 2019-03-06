@@ -1,0 +1,440 @@
+
+<FrontEndGUI>:
+    data_screen: data_screen_id
+
+    DataScreen:
+        id: data_screen_id
+
+<DataScreen>:
+    orientation: 'horizontal'
+    meshlist_panel: meshlist_panel_id
+    case_spinner: case_spinner_id
+    datalist_panel: datalist_panel_id
+    add_case_button: add_case_button_id
+
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_x: 0.32
+        pos_hint: {'x': 0, 'y': 0}
+        Button:
+            text: "add a mesh"
+            size_hint: 1, 0.1
+            on_release: meshlist_panel_id.show_loadmeshdialog()
+
+        ScrollView:
+            MeshListPanel:
+                id: meshlist_panel_id
+                size_hint_y: None                    # Need this as well to make ScrollView work !
+                height: self.minimum_height          # Need this to update the TreeView's height dynamicalll to make ScrollView work
+#            root_options: dict(text='Tree One')
+                hide_root: True
+                indent_start: 25        # this affects the level 0 node, i.e. the first level if root is hidden
+                indent_level: 20
+
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_x: 0.32
+        pos_hint: {'x': 0.32, 'y': 0}
+
+        Button:
+            size_hint: 1, 0.12
+            id: add_case_button_id
+            text: "no mesh selected"
+            on_release: case_spinner_id.show_addcasedialog()
+
+        BoxLayout:
+            size_hint_y: 0.12
+            orientation: 'horizontal'
+            
+            CaseSpinner:
+                id: case_spinner_id
+
+            Button:
+                size_hint_x: 0.4
+                text: "add data"
+                on_release: datalist_panel_id.show_adddatadialog()
+
+        BoxLayout:
+            size_hint_y: 0.12
+            orientation: 'horizontal'
+
+            Label:
+                text:
+
+        DataListPanel:
+            id: datalist_panel_id
+
+
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_x: 0.36
+        pos_hint: {'x': 0.64, 'y': 0}
+
+        Button:
+            size_hint_y: 0.1
+            text: "to plot screen >"
+
+        Button:
+            size_hint_y: 0.1
+            text: "calculator"
+            on_release: calculator_id.show_hide()
+
+        Calculator:
+            id: calculator_id
+            size_hint_x: 0
+            opacity: 0
+
+
+############################################
+############# meshlist_panel tree ##########
+
+#### TreeView nodes ####
+
+<MeshBranchNode>:
+    height: app.root.data_screen.height*0.06
+    orientation: 'horizontal'
+
+    BoxLayout:                           # dummy transparent box to push the button to the right in order to show the drop-down arrow
+        size_hint_x: 0.02
+        background_color: (0, 0, 0, 0)
+
+    Button:
+        text: root.mesh_name
+#        background_color: (0, 0, 0, 0)
+        on_release: app.root.data_screen.meshlist_panel.toggle_node(root)      # here you need to give "root" (the TreeViewButton node) as the argument rather than "self" (the Button itself)
+
+    Button:
+        size_hint_x: 0.3
+        text: "change"
+
+<MeshInfoNodeNode>:
+    orientation: 'vertical'
+
+    BoxLayout:
+#        size_hint_x: 0.5
+        orientation: 'horizontal'
+
+        Label:
+            text: root.mesh_info
+
+# for some reason I can't do it the following way:
+#            text: "nx: "+str(app.bdt.data_tree[root.parent_node.mesh_name]["mesh"].nx)
+#AttributeError: 'NoneType' object has no attribute 'mesh_name'. It means root.parent_node is a 'NoneType', but you see apparently the button down below can ues it without problem. some KiVy stupidity.
+
+        Button:
+            size_hint_x: 0.3
+            text: "cases >"
+            on_release: app.bdt.set_current_mesh(root.parent_node.mesh_name)
+    Button:
+        size_hint_y: 0.35
+        text: "add geometry info of the mesh"
+        on_release: app.root.data_screen.meshlist_panel.show_load_geomdata_dialog(root.parent_node.mesh_name)
+
+<GeomInfoNodeNode>:
+    orientation: 'horizontal'
+    height: dp(35)
+
+    Label:
+        text: root.data_name+" ("+root.data_unit+")"
+
+    Button:                            # "Button" Capital initial! not "button". Otherwise will get traceback error takes hours to track down
+        size_hint_x: 0.2
+        text: "change"
+
+####
+
+#### dialogs as contents for popup ####
+
+<LoadMeshDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.1
+        text: "enter a name and choose a mesh file"
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+
+        Label:
+            text: "mesh name"
+
+        TextInput:
+            id: new_mesh_name_id
+            multiline: False
+
+    FileChooserIconView:
+        id: filechooser_id
+        path: "./"
+        filters: ['*.sno']
+        dirselect: True        # trick to make double clicking open a directory
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+        Button:
+            size_hint: 0.5, 1
+            text: "Add"
+            on_release: root.tryload(new_mesh_name_id.text, filechooser_id.selection)
+
+        Button:
+            size_hint: 0.5, 1
+            text: "Cancel"
+            on_release: root.cancel()
+
+<LoadGeomDataDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.1
+        text: "enter data name, unit and choose a data file"
+
+    BoxLayout:
+        size_hint_y: 0.15
+        Label:
+            text: "data name"
+        TextInput:
+            id: data_name_id
+            multiline: False
+        Label:
+            text: "unit"
+        TextInput:
+            id: data_unit_id
+
+    FileChooserListView:
+        id: geomdatafilechooser_id
+        path: "./"
+#        dirselect: True        # trick to make double clicking open a directory
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+        Button:
+            size_hint: 0.5, 1
+            text: "Add"
+            on_release: root.tryload(data_name_id.text, data_unit_id.text, geomdatafilechooser_id.selection)
+        Button:
+            size_hint: 0.5, 1
+            text: "Cancel"
+            on_release: root.cancel()
+
+####
+
+###### end of meshlist_panel tree ######
+########################################
+
+########################################
+###### simulation case/data panel ######
+
+####### run case spinner #########
+
+<CaseSpinner>:
+    size_hint_x: 0.6
+    text_autoupdate: True
+
+#    text: '<select>'
+    on_text: app.bdt.set_current_case(self.text)
+
+<AddCaseDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.15
+        text: "enter a name and some description of the case"
+
+    BoxLayout:
+        size_hint_y: 0.2
+        orientation: 'horizontal'
+        Label:
+            text: "case name"
+        TextInput:
+            id: case_name_id
+            multiline: False
+
+    BoxLayout:
+        orientation: 'horizontal'
+        Label:
+            text: "description"
+        TextInput:
+            id: description_id
+
+    BoxLayout:
+        size_hint_y: 0.2
+        orientation: 'horizontal'
+        Button:
+            text: "Add"
+            on_release: root.tryload(case_name_id.text, description_id.text)
+
+        Button:
+            text: "Cancel"
+            on_release: root.cancel()
+
+####
+
+####### data list RecycleView #########
+
+<DataListPanel>:
+    viewclass: "DataItem"
+
+    RecycleBoxLayout:                # you need this block to make the recycleview show items
+        default_size: None, dp(36)
+        default_size_hint: 1, None
+        size_hint_y: None
+        height: self.minimum_height
+        orientation: 'vertical'
+
+<DataItem>:
+    Button:
+        text: root.data_name+" ("+root.data_unit+")"
+
+<AddSOLPSDataDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.1
+        text: "enter data name, unit and choose a data file"
+
+    BoxLayout:
+        size_hint_y: 0.2
+        orientation: 'horizontal'
+        Label:
+            text: "data name"
+        TextInput:
+            id: data_name_id
+            multiline: False
+        Label:
+            text: "unit"
+        TextInput:
+            id: data_unit_id
+            multiline: False
+
+    FileChooserListView:
+        id: datafilechooser_id
+        path: "./"
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+        Button:
+            size_hint: 0.5, 1
+            text: "Add"
+            on_release: root.tryload(data_name_id.text, data_unit_id.text, datafilechooser_id.selection)
+        Button:
+            size_hint: 0.5, 1
+            text: "Cancel"
+            on_release: root.cancel()
+
+
+#### end of simulation case/data panel ####
+###########################################
+
+##################################################
+############# data calculator panel ##############
+
+############ calculator panel ####################
+
+<Calculator>:
+    orientation: 'vertical'
+    type_indicator: type_indicator_id
+    cal_var_name: cal_var_name_id
+    cal_var_unit: cal_var_unit_id
+    cal_var_formula: cal_var_formula_id
+
+    BoxLayout:
+        size_hint_y: 0.1
+
+        Label:
+            text: "calculate data"
+
+    BoxLayout:
+        size_hint_y: 0.2
+
+        Label:
+            text: "name:"
+        TextInput:
+            id: cal_var_name_id
+
+        Label:
+            text: "unit:"
+        TextInput:
+            id: cal_var_unit_id
+
+    BoxLayout:
+        size_hint_y: 0.3
+        orientation: 'vertical'
+
+        Label:
+            size_hint_y: 0.4
+            text: "enter formula:"
+
+        TextInput:
+            id: cal_var_formula_id
+
+    CalculationVarableType_RadioButton:
+        size_hint_y: 0.2
+        id: type_indicator_id
+
+    BoxLayout:
+        size_hint_y: 0.2
+
+        Button:
+            text: "calculate"
+            on_release: app.bdt.add_calculation_var(cal_var_name_id.text, cal_var_unit_id.text, cal_var_formula_id.text, type_indicator_id.is_geomesh_type.active)
+
+        Button:
+            text: "clear"
+            on_release: root.clear_inputs()
+
+        Button:
+            text: "help?"
+
+####
+
+######## calculated var type radio button #########
+
+<CalculationVarableType_RadioButton>:
+    orientation: 'horizontal'
+    is_geomesh_type: is_geomesh_type_id
+
+    Label:
+        size_hint_x: 0.4
+        text: "variable tpye:"
+
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_x: 0.6
+
+        BoxLayout:
+            CheckBox:
+                id: is_geomesh_type_id
+                group: "calculation_var_type"
+                active: True
+                allow_no_selection: False
+#                value: root.is_geometry_variable
+                size_hint_x: 0.2
+            Label:
+                text: "geometry/mesh    "
+
+        BoxLayout:
+            CheckBox:
+                group: "calculation_var_type"
+#                active: not is_geomesh_type_id.active
+                allow_no_selection: False
+#                value: root.is_simulation_variable
+                size_hint_x: 0.2
+            Label:
+#                halign: 'left'                # this does not work as to align the text left
+                text: "simulation/case    "    # so for now just use white space to get the damn thing to the wanted position
+####
+
+######################################################################
+######################################################################
+
