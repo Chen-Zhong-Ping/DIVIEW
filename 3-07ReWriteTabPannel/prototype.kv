@@ -454,6 +454,7 @@
 
 <PlotScreen>:
     orientation: 'vertical'
+    plot_tabs_binder: plot_tabs_binder_id
 
     BoxLayout:
         size_hint_y: 0.1
@@ -463,13 +464,12 @@
 
         Button:
             text: "new plot"
-            on_release: plot_taps_id.show_addtab_dialog()
+            on_release: plot_tabs_binder_id.show_addtab_dialog()
 
         Button:
             text: "add subplot"
-
-#        Button:
-#            text: "create colorbar"    color bar is not applicable to 1d plots. This option should not be on the top menu bar
+#            on_release: plot_tabs_binder_id.tabs[app.bpt.current_plot]["plot_tab"].plot_desk.figaxes_panel.show_addsubplot_dialog()
+            on_release: plot_tabs_binder_id.try_addsubplot()
 
         Button:
             text: "save this plot"
@@ -478,16 +478,16 @@
             text: "to data screen >"
             on_release: app.root.current = "data_screen"
 
-    PlotTabsPanel:
+    PlotTabsBinder:
         size_hint_y: 0.9
         pos_hint: {'x': 0, 'y': 0}
-        id: plot_taps_id
+        id: plot_tabs_binder_id
 
 
 ##########################################################
 ##############  plot tabs panel ##########################
 
-<PlotTabsPanel>:
+<PlotTabsBinder>:
     do_default_tab: False
 
 <AddTabDialog>:
@@ -558,34 +558,52 @@
 ##########################################################
 ###############  plot desk 2d_quad  ######################
 
-<PlotDesk>:
+<PlotDesk_2d>:
     orientation: 'horizontal'
+    figaxes_panel: figaxes_panel_id
+    figdixplay_panel: figdixplay_panel_id
+    colorbar_panel: colorbar_panel_id
+
+    FigAxesPanel:
+        id: figaxes_panel_id
+        size_hint_x: 0.15
+
+    FigDisplayPanel:
+        id: figdixplay_panel_id
+        size_hint_x: 0.7
+
+    ColorBarPanel_2d:
+        id: colorbar_panel_id
+        size_hint_x: 0.15
 
 ###############  figure and axes panel  ##################
 
-<FigAxesPanel_2d_quad>:
+<FigAxesPanel>:
     orientation: 'vertical'
+    fig_name_button: fig_name_button_id
+    axes_list_subpanel: axes_list_subpanel_id
 
     BoxLayout:
-        orientation: 'vertical'
-        size_hint_y: 0.2
+        orientation: 'horizontal'
+        size_hint_y: 0.1
 
         Button:
-            size_hint_y: 0.5
-            text: "title: " + app.bpt.plots[root.index]["plot_name"]
+            id: fig_name_button_id
+            size_hint_x: 0.7
+#            text: app.root.plot_screen.plot_tabs_binder.tabs[app.bpt.current_plot]["plot_tab"].text    # can't do it this way...
             on_release: root.show_changename_dialog()
 
         Button:
-            size_hint_y: 0.5
-            text: "size:"
+            size_hint_x: 0.3
+            text: "PLOT"
 
-    Button:
-        size_hint_y: 0.1
-        text: "add subplot"
-        on_release: root.show_addsubplot_dialog()
+    Label:
+        size_hint_y: 0.05
+        text: "subplot list"
 
     AxesListSubPanel:
-        size_hint_y: 0.7
+        id: axes_list_subpanel_id
+        size_hint_y: 0.85
 
 <ChangeNameDialog>:
     orientation: 'vertical'
@@ -693,7 +711,6 @@
 
 <AxesListSubPanel>:
     orientation: 'vertical'
-
 
 
 

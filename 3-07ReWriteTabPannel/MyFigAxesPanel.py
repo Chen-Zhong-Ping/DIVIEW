@@ -5,6 +5,8 @@ from kivy.app import App
 
 from kivy.core.window import Window
 
+from kivy.uix.screenmanager import ScreenManager, Screen
+
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.spinner import Spinner
@@ -12,10 +14,12 @@ from kivy.uix.spinner import Spinner
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from kivy.properties import BooleanProperty
+from kivy.properties import NumericProperty
 
 from kivy.uix.treeview import TreeView, TreeViewNode
 from kivy.uix.recycleview import RecycleView
 
+from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 
 # import custom modules
 
@@ -56,8 +60,9 @@ class MeshListPanel(TreeView):
 
         self.add_node(MeshInfoNodeNode(mesh_info = mesh_info), parent = self.mesh_tracker[mesh_name])
 
-        GUI.root.case_spinner.add_mesh_case(mesh_name)       # automatically add a new mesh_case pertaining to this mesh to the spinner
+        GUI.root.data_screen.case_spinner.add_mesh_case(mesh_name)       # automatically add a new mesh_case pertaining to this mesh to the spinner
         BDT.set_current_mesh(mesh_name)                 # set the current mesh to be the newly added one
+        BPT.add_plotable_mesh(mesh_name)                 # add to the plotable list of BPT
 
         self.dismiss_popup()
 
@@ -120,9 +125,9 @@ class LoadGeomDataDialog(BoxLayout):
             self.message.text = "Choose a geometry data file!"        # warning message
         else:
             BDT.add_geometry_data(data_name, data_unit, filechooser_selection[0])
+            BPT.add_plotable_geometry_data(data_name)        # add to the list of plotables
             self.load(data_name, data_unit)
 
-####################################################################
 ####################################################################
 
 ####################################################################
@@ -150,7 +155,7 @@ class CaseSpinner(Spinner):
     def add_case(self, case_name, description):             # this method adds a new case in the current case set (mesh)
         self.mesh_cases[BDT.current_mesh].append(case_name)         # append a case_name (str) to the current/outstanding case set (mesh)
 
-        GUI.root.datalist_panel.add_data_set(case_name)
+        GUI.root.data_screen.datalist_panel.add_data_set(case_name)
         BDT.set_current_case(case_name)
 
         self.values = self.mesh_cases[BDT.current_mesh]            # reflect the change, this has to be done after datalist_panel.add_data_set(case_name) since the self.text of the spinner will change and there is an on_text event right after.
@@ -173,6 +178,7 @@ class AddCaseDialog(BoxLayout):
             self.message.text = "MUST enter a case name!"
         else:
             BDT.add_case(case_name)
+            BPT.add_plotable_case(case_name)        # add a case to the list of plotables
             self.load(case_name, description)
 
 ####
@@ -183,7 +189,6 @@ class DataListPanel(RecycleView):
 
     def __init__(self, **kwargs):
         super(DataListPanel, self).__init__(**kwargs)
-#        self.data = []
         self.SOLPSdata_sets = {"": []}             # key is case name, value is option for "data" of RecycleView. When a new mesh is added, spinner text will change to "", so need to have a [] as recycleview data otherwise error.
 
     def add_data_set(self, case_name):
@@ -226,9 +231,9 @@ class AddSOLPSDataDialog(BoxLayout):
             self.message.text = "Choose a simulation data file!"        # warning message
         else:
             BDT.add_simulation_data(data_name, data_unit, filechooser_selection[0])
+            BPT.add_plotable_simulation_data(data_name)
             self.load(data_name, data_unit, True)
 
-####################################################################
 ####################################################################
 
 
@@ -240,6 +245,7 @@ class Calculator(BoxLayout):
     cal_var_name = ObjectProperty(None)        # use "var" instead of "data" to indicate data array calculated in this app
     cal_var_unit = ObjectProperty(None)
     cal_var_formula = ObjectProperty(None)
+    is_show = BooleanProperty(False)
 
     def clear_inputs(self):
         self.cal_var_name.text = ""
@@ -248,6 +254,14 @@ class Calculator(BoxLayout):
         self.type_indicator.is_geomesh_type.trigger_action(duration=0.1)        # have to use this to trigger a button action event
 #        self.type_indicator.is_geomesh_type.active = True        # since setting it to True will not set the other one to False. kivy bug.
 
+    def show_hide(self):
+        self.is_show = not self.is_show
+        if self.is_show is True:
+            self.size_hint_x = 1
+            self.opacity = 1
+        else:
+            self.size_hint_x = 0
+            self.opacity = 0
 
 class CalculationVarableType_RadioButton(BoxLayout):
     is_geometry_variable = BooleanProperty(True)
@@ -257,26 +271,264 @@ class CalculationVarableType_RadioButton(BoxLayout):
     pass
 
 ####################################################################
-####################################################################
 
 
-
-####################################################################
-####################################################################
-
-class FrontEndGUI(BoxLayout):
+class DataScreen(Screen):
     meshlist_panel = ObjectProperty(None)        # "kivy property names must start with a lowercase letter" fuck ya.
     case_spinner = ObjectProperty(None)
     datalist_panel = ObjectProperty(None)
+    add_case_button = ObjectProperty(None)
+
+####################################################################
+####################################################################
+
+####################################################################
+####################################################################
+
+class PlotScreen(Screen):
+    plot_tabs_binder = ObjectProperty(None)
+    pass
+
+####################################################################
+
+class PlotTabsBinder(TabbedPanel):
+
+    def __init__(self, **kwargs):
+        super(PlotTabsBinder, self).__init__(**kwargs)
+        self.tabs = {}            # key is index, use index(won't change) rather than plot_name(may change) to track each plot.
+
+    def show_addtab_dialog(self):
+        self._popup = Popup(title="create a new plot", size_hint=(0.4, 0.4), 
+                            content=AddTabDialog(load=self.add_tab, cancel=self.dismiss_popup))
+        self._popup.open()
+
+    def add_tab(self, plot_name, plot_type):
+
+        BPT.current_plot = BPT.count    # must update the current_plot index first!
+
+        self.tabs[BPT.count] = {}
+#        self.tabs[BPT.count]["plot_name"] = plot_name        # there is actually no need for a "plot_name" variable, use ["plot_tab"].text
+        self.tabs[BPT.count]["plot_type"] = plot_type
+
+#        if plot_type is "2d_quad":
+#            self.tabs[plot_name]["plot_tab"] = PlotTab(plot_name)
+#        else:
+#            pass                # later will add other types of plots.
+
+        self.tabs[BPT.count]["plot_tab"] = PlotTab(plot_name, plot_type)    # track each tab
+        self.add_widget(self.tabs[BPT.count]["plot_tab"])
+        self.switch_to(self.tabs[BPT.count]["plot_tab"])
+
+        BPT.current_plot = BPT.count
+        BPT.count += 1
+
+#        self.add_widget(BPT.plots[BPT.current_plot]["plot_tab"])
+#        self.switch_to(BPT.plots[BPT.current_plot]["plot_tab"])
+        self.dismiss_popup()
+
+    def dismiss_popup(self):
+        self._popup.dismiss()
+
+    def try_addsubplot(self):
+#        if BPT.count is 0:    # "if not self.tabs"    # Empty dictionaries evaluate to False in Python
+        if bool(self.tabs) :    # True if nonempty, False if empty
+            self.tabs[BPT.current_plot]["plot_tab"].plot_desk.figaxes_panel.axes_list_subpanel_id.show_addsubplot_dialog()
+        else:
+            pass
 
     pass
 
+class AddTabDialog(BoxLayout):
+    load = ObjectProperty(None)        # these will be assigned with the proper function upon instantiation
+    cancel = ObjectProperty(None)
+    message = ObjectProperty(None)
+
+    def tryload(self, plot_name, polt_type):
+        if plot_name is "" :
+            self.message.text = "Enter a name for the plot!"        # warning message
+        else:
+#            BPT.add_plot(plot_name, polt_type)
+            self.load(plot_name, polt_type)        # plot_name, polt_type
+    pass
+
+class PlotTab(TabbedPanelItem):
+#    index = NumericProperty()
+
+    def __init__(self, plot_name, plot_type, **kwargs):
+        super(PlotTab, self).__init__(**kwargs)
+        self.text = plot_name
+#        self.index = index        # use index(won't change) rather than plot_name(may change) to track each plot
+#        self.add_widget(PlotDesk(plot_type, index))        # had to do this to correctly pass the index, for some reason can't make it work in kv file
+
+        if plot_type is "2d_quad" or plot_type is "2d_tria":
+            self.plot_desk = PlotDesk_2d()
+        else:
+            pass    # will add 1d_line type later
+
+        self.plot_desk.figaxes_panel.fig_name_button.text = plot_name    # text of the fig_name_button, initially have to do it here
+        self.add_widget(self.plot_desk)
+
+    pass
+
+##################################################
+
+class PlotDesk_2d(BoxLayout):
+#    index = NumericProperty()
+
+    figaxes_panel = ObjectProperty(None)
+    figdixplay_panel = ObjectProperty(None)
+    colorbar_panel = ObjectProperty(None)        # this won't be in the 1d plot desk
+
+#    def __init__(self, plot_type, **kwargs):
+#        super(PlotDesk, self).__init__(**kwargs)
+#        self.index = index        # use index(won't change) rather than plot_name(may change) to track each plot
+
+
+#        if plot_type is "2d_quad":
+#            self.add_widget(FigAxesPanel_2d_quad(index = index, size_hint_x = 0.15))            # had to do this to correctly pass the index
+#            self.add_widget(FigDisplayPanel(index = index, size_hint_x = 0.7))
+#            self.add_widget(ColorBarPanel_2d(index = index, size_hint_x = 0.15))
+#        elif plot_type is "2d_tria":
+#            pass
+#        else:
+#            pass
+
+    pass
+
+####
+
+########
+########
+########
+########  This block looks generic to all types of plots. Simply needs to choose the viewclass of the AxesListSubPanel based on plot_type
+
+class FigAxesPanel(BoxLayout):
+#    index = NumericProperty()
+    fig_name_button = ObjectProperty(None)
+    axes_list_subpanel = ObjectProperty(None)
+
+    def show_changename_dialog(self):
+        self._popup = Popup(title="rename the plot", size_hint=(0.3, 0.3), 
+                            content=ChangeNameDialog(load=self.change_name, cancel=self.dismiss_popup))
+        self._popup.open()
+
+    def change_name(self, new_name):
+
+#        GUI.root.plot_screen.plot_tabs_binder.tabs[BPT.current_plot]["plot_name"] = new_name    # update the name in tracker
+        GUI.root.plot_screen.plot_tabs_binder.tabs[BPT.current_plot]["plot_tab"].text = new_name    # update the name of the tab
+        self.fig_name_button.text = new_name        # update the name appear on the name button itself
+
+#        BPT.plots[self.index]["plot_name"] = mew_name
+#        BPT.plots[self.index]["plot_tab"].text = mew_name
+
+        self.dismiss_popup()
+
+    def dismiss_popup(self):
+        self._popup.dismiss()
+
+    pass
+
+class ChangeNameDialog(BoxLayout):    # change name of the figure/tab this looks generic to all plot_types
+    load = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+    rename_button = ObjectProperty(None)
+
+    def tryload(self, new_name):
+        if new_name is "":
+            self.rename_button.text = "enter a name!"
+        else:
+            self.load(new_name)
+        pass
+
+####
+
+class AxesListSubPanel(RecycleView):
+
+    def __init__(self, **kwargs):
+        super(AxesListSubPanel, self).__init__(**kwargs)
+
+        if GUI.root.plot_screen.plot_tabs_binder.tabs[BPT.current_plot]["plot_type"] is "2d_quad":
+            self.viewclass = "SubPlotItem_2d_quad"
+        else:
+            pass    # will add other types later
+
+    def show_addsubplot_dialog(self):
+        self._popup = Popup(title="Add a subplot", size_hint=(0.3, 0.5), pos_hint = {'top': 0.95}, 
+                            content=AddSubplotDialog(load = self.add_subplot, cancel = self.dismiss_popup))
+        self._popup.open()
+
+    def add_subplot(self, 
+
+    def dismiss_popup(self):
+        self._popup.dismiss()
+
+    pass
+
+
+class AddSubplotDialog(BoxLayout):    # add an axes to the figure, add an recycleview item to the AxesListSubPanel, looks generic as well.
+    load = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+    message = ObjectProperty(None)
+
+    def tryload(self, mesh_name, case_name, data_name, axes_name):
+        if mesh_name is "":
+            self.message.text = "must choose a mesh"
+        elif case_name is "":
+            self.message.text = "must choose a case"
+        elif data_name is "":
+            self.message.text = "must choose a data"
+        elif axes_name is "":
+            self.message.text = "enter a name for the subplot"
+        else:
+            pass
+    pass
+
+
+########
+########
+########
+########
+
+class SubPlotItem_2d_quad(BoxLayout):    # view class of AxesListSubPanel if plot_type is 2d_quad
+    pass
+
+##################################
+
+class ColorBarPanel_2d(BoxLayout):        # this looks generic to both 2d types
+#    index = NumericProperty()
+
+    pass
+
+###################################################
+
+class FigDisplayPanel(BoxLayout):
+#    index = NumericProperty()
+
+    pass
+
+
+####################################################################
+####################################################################
+
+# class FrontEndGUI(BoxLayout):
+#    meshlist_panel = ObjectProperty(None)        # "kivy property names must start with a lowercase letter" fuck ya.
+#    case_spinner = ObjectProperty(None)
+#    datalist_panel = ObjectProperty(None)
+
+class FrontEndGUI(ScreenManager):
+    data_screen = ObjectProperty(None)
+    plot_screen = ObjectProperty(None)
+    pass
+
 class PrototypeApp(App):
-    title = "ScreenManager prototype"
+    title = "DIVIEW prototype"
     bdt = ObjectProperty(None)
     def build(self):
         self.bdt = BDT            # for reference to the BDT from inside .kv file
+        self.bpt = BPT            # for reference to the BPT from inside .kv file
         return FrontEndGUI()
+
+###################################################
 
 class BackendDataTracker:
 
@@ -287,11 +539,12 @@ class BackendDataTracker:
 
     def set_current_mesh(self, mesh_name):
         self.current_mesh = mesh_name
-        GUI.root.case_spinner.sync_current_mesh()
+        GUI.root.data_screen.case_spinner.sync_current_mesh()
+        GUI.root.data_screen.add_case_button.text = mesh_name + " / add a case"
 
     def set_current_case(self, case_name):
         self.current_case = case_name
-        GUI.root.datalist_panel.sync_current_case()
+        GUI.root.data_screen.datalist_panel.sync_current_case()
 
     def add_mesh(self, mesh_name, mesh_file):
         self.data_tree[mesh_name] = {}        # add a new branch indexed by the mesh name
@@ -304,7 +557,7 @@ class BackendDataTracker:
         self.data_tree[self.current_mesh][data_name]["data2D_IyIx"] = Data2D(mesh_obj = self.data_tree[self.current_mesh]["mesh"], data2D_file = data_file).IyIx
         self.data_tree[self.current_mesh][data_name]["data_unit"] = data_unit
         self.data_tree[self.current_mesh][data_name]["data_file"] = data_file
-        self.data_tree[self.current_mesh]["geom_var_ref"][data_name] = self.data_tree[self.current_mesh][data_name]["data2D_IyIx"]  # update refdict
+        self.data_tree[self.current_mesh]["geom_var_ref"][data_name] = self.data_tree[self.current_mesh][data_name]["data2D_IyIx"]  # update refdict for calculator
 
     def add_case(self, case_name):
         self.data_tree[self.current_mesh][case_name] = {}        # add a new case branch indexed by the case name under the mesh name
@@ -328,7 +581,7 @@ class BackendDataTracker:
 
             self.data_tree[self.current_mesh]["geom_var_ref"][var_name] = self.data_tree[self.current_mesh][var_name]["data2D_IyIx"]  # update refdict
 
-            GUI.root.meshlist_panel.add_geom_info(var_name, unit)    # make the change appear in GUI
+            GUI.root.data_screen.meshlist_panel.add_geom_info(var_name, unit)    # make the change appear in GUI
 
         else:
             self.data_tree[self.current_mesh][self.current_case][var_name] = {}
@@ -336,10 +589,62 @@ class BackendDataTracker:
 
             self.data_tree[self.current_mesh][self.current_case]["simu_var_ref"][var_name] = self.data_tree[self.current_mesh][self.current_case][var_name]["data2D_IyIx"]    # update the refdict
 
-            GUI.root.datalist_panel.add_data(var_name, unit, False)    # make the change appear in GUI
+            GUI.root.data_screen.datalist_panel.add_data(var_name, unit, False)    # make the change appear in GUI
         pass
 
+###############################
+
+class BackendPlotTracker:
+
+    def __init__(self):
+        self.current_plot = None         # indicator of the current plot tab, an integer
+
+        self.plots = {}        # use a dictionary to store and track all the plots
+        self.count = 0        # the number of total plot tabs have been added
+
+        self.plotables = {}    # providing list of data (names) can be ploted in the add subplot dialog
+
+#    def add_plot(self, plot_name, plot_type):
+
+#        self.current_plot = self.count
+
+#        self.plots[self.count] = {}
+#        self.plots[self.count]["plot_name"] = plot_name
+#        if plot_type is "2d_quad":
+#            self.plots[self.count]["type"] = plot_type
+#            self.plots[self.count]["plot_tab"] = PlotTab(plot_name, "2d_quad", self.count)
+#        else:
+#            pass                # later will add other types of plots.
+
+#        self.count += 1
+
+    def set_current_plot(self, index):
+        self.current_plot = index
+#        print("index: "+str(self.current_plot))
+
+    #### adding the list of plotables whenever a new mesh/case/data is added through the data screen
+
+    def add_plotable_mesh(self, mesh_name):
+        self.plotables[mesh_name] = {}        # use same mesh_name to link between BPT.plotables and BDT.data_tree
+        self.plotables[mesh_name]["mesh_geometry"] = []    # a list of plotable geometric quantities independent of simulation. "mesh_geometry" same level as case names.
+        self.plotables[mesh_name]["mesh_geometry"].append("mesh")
+
+    def add_plotable_geometry_data(self, data_name):
+        self.plotables[BDT.current_mesh]["mesh_geometry"].append(data_name)
+
+    def add_plotable_case(self, case_name):
+        self.plotables[BDT.current_mesh][case_name] = []    # same level as "mesh_geometry". a list of plotable simulation data
+
+    def add_plotable_simulation_data(self, data_name):
+        self.plotables[BDT.current_mesh][BDT.current_case].append(data_name)
+
+    ####
+
+###############################
+
 BDT = BackendDataTracker()        # reference to the backend data handling
+
+BPT = BackendPlotTracker()        # reference to the backend plot tracker
 
 Window.size = (1200, 600)        # set the initial window size upon launching
 
