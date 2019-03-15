@@ -325,8 +325,8 @@ class PlotTabsBinder(TabbedPanel):
         self._popup.dismiss()
 
     def try_addsubplot(self):    # reason for this detour is to determine whether there is a tab or not, if no tab created nothing done.
-#        if BPT.count is 0:    # "if not self.tabs"    # Empty dictionaries evaluate to False in Python
-        if bool(self.tabs) :    # True if nonempty, False if empty
+
+        if bool(self.tabs) :    # True if nonempty, False if empty # Empty dictionaries evaluate to False in Python
             self.tabs[BPT.current_plot]["plot_tab"].plot_desk.figaxes_panel.axes_list_subpanel.show_addsubplot_dialog()
         else:
             pass
@@ -356,7 +356,7 @@ class PlotTab(TabbedPanelItem):
 #        self.add_widget(PlotDesk(plot_type, index))        # had to do this to correctly pass the index, for some reason can't make it work in kv file
 
         # step1: initiallize a plot_desk:
-        if plot_type is "2d_quad" or plot_type is "2d_tria":
+        if plot_type in ("2d_quad", "2d_tria"):
             self.plot_desk = PlotDesk_2d()
         else:
             pass    # will add 1d_line type later
@@ -476,6 +476,11 @@ class AxesListSubPanel(RecycleView):
     def dismiss_popup(self):
         self._popup.dismiss()
 
+    def show_deletesubplot_dialog(self, axes_index):
+        self._popup = Popup(title="Modify subplot", size_hint=(0.3, 0.5), pos_hint = {'top': 0.95}, 
+                            content=DeleteSubplotDialog(load = self.update_subplot_list, cancel = self.dismiss_popup, delete_index = axes_index))
+        self._popup.open()
+
     pass
 
 
@@ -500,16 +505,42 @@ class AddSubplotDialog(BoxLayout):    # add an axes to the figure, add an recycl
     pass
 
 
+class DeleteSubplotDialog(BoxLayout):
+    load = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+    delete_index = NumericProperty()
+
+    def delete_axes(self):
+        BPT.delete_subplot(self.delete_index)
+        self.load()
+
 ########
 ########
 ########
 ########
 
 class SubPlotItem_2d_quad(BoxLayout):    # view class of AxesListSubPanel if plot_type is 2d_quad
+    # use selection at creation
     axes_name = StringProperty()
     mesh_name = StringProperty()
     case_name = StringProperty()
     data_name = StringProperty()
+
+    axes_index = NumericProperty()     # use this to track each item, too bad RecycleView does not provide such function directly
+
+    # use default value at creation
+    ix_region = StringProperty()        # poloidal cell index range
+    iy_region = StringProperty()        # radial cell index range
+    is_mesh_overlay = BooleanProperty()
+    axes_x_min = NumericProperty()        # plot range in meters for 2d plots
+    axes_x_max = NumericProperty()
+    axes_y_min = NumericProperty()
+    axes_y_max = NumericProperty()
+    pos_axes_left = NumericProperty()    # position of axes on canvas
+    pos_axes_bottom = NumericProperty()
+    pos_axes_z = NumericProperty()
+    pos_axes_width = NumericProperty()
+    pos_axes_height = NumericProperty()  # BE CAREFUL! custom properties name should not conflict the built in keywords!
 
     pass
 
@@ -634,7 +665,17 @@ class BackendPlotTracker:
 
         self.count += 1
 
+    #### rule of separation: let the plot_screen keep track of the GUI widgets as its children, while BPT tracks the numbers and strings for plotting
+    #### use numbers as keys in the dictionary to track figs and axes, since the names can change.
+
+    def set_current_plot(self, index):
+        self.current_plot = index
+#        print("index: "+str(self.current_plot))
+
+
     def add_subplot(self, axes_name, mesh_name, case_name, data_name):
+
+        ## use input values for the following, universal for all types of plots
 
         self.plots[self.current_plot]["AxesList_settings"].append({})
         self.plots[self.current_plot]["AxesList_settings"][-1]["axes_name"] = axes_name
@@ -642,14 +683,43 @@ class BackendPlotTracker:
         self.plots[self.current_plot]["AxesList_settings"][-1]["case_name"] = case_name
         self.plots[self.current_plot]["AxesList_settings"][-1]["data_name"] = data_name
 
-    #### rule of separation: let the plot_screen keep track of the GUI widgets as its children, while BPT tracks the numbers and strings  for plotting
-    #### use numbers as keys in the dictionary to track figs and axes, since the names can change.
+        self.plots[self.current_plot]["AxesList_settings"][-1]["axes_index"] = len(self.plots[self.current_plot]["AxesList_settings"]) - 1
 
-    def set_current_plot(self, index):
-        self.current_plot = index
-#        print("index: "+str(self.current_plot))
+        ## set default values for the following
+
+        # for 2d_quad type
+        if GUI.root.plot_screen.plot_tabs_binder.tabs[self.current_plot]["plot_type"] is "2d_quad":
+            self.plots[self.current_plot]["AxesList_settings"][-1]["ix_region"] = "full"        # poloidal cell index range
+            self.plots[self.current_plot]["AxesList_settings"][-1]["iy_region"] = "both"
+            self.plots[self.current_plot]["AxesList_settings"][-1]["is_mesh_overlay"] = False
+        else:
+            pass
+
+        # for both 2d types
+        if GUI.root.plot_screen.plot_tabs_binder.tabs[self.current_plot]["plot_type"] in ("2d_quad", "2d_tria"):
+            self.plots[self.current_plot]["AxesList_settings"][-1]["axes_x_min"] = 0.0               # plot range in meters
+            self.plots[self.current_plot]["AxesList_settings"][-1]["axes_x_max"] = 1.0
+            self.plots[self.current_plot]["AxesList_settings"][-1]["axes_y_min"] = -1.0
+            self.plots[self.current_plot]["AxesList_settings"][-1]["axes_y_max"] = 1.0
+            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_left"] = 0.0                # position of axes on canvas
+            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_bottom"] = 0.0
+            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_z"] = 0
+            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_width"] = 0.8
+            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_height"] = 1.0
+        else:
+            pass
+
+
+    def delete_subplot(self, axes_index):
+
+        del self.plots[self.current_plot]["AxesList_settings"][axes_index]
+
+        # update the axes_index property of each RecycleView item to match the corresponding index in the list
+        for i in range(len(self.plots[self.current_plot]["AxesList_settings"])):
+            self.plots[self.current_plot]["AxesList_settings"][i]["axes_index"] = i
 
     #### adding the list of plotables whenever a new mesh/case/data is added through the data screen
+    #### have not decided whether this should be separate by plot_type, do not see necessity
 
     def add_plotable_mesh(self, mesh_name):
         self.plotables[mesh_name] = {}        # use same mesh_name to link between BPT.plotables and BDT.data_tree

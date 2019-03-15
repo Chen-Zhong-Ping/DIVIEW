@@ -706,13 +706,32 @@
             text: "cancel"
             on_release: root.cancel()
 
+
+<DeleteSubplotDialog>:
+    orientation: 'vertical'
+
+    Label:
+        text: "delete subplot?"
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Button:
+            text: "delete"
+            on_release: root.delete_axes()
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+
 ####
 
 <AxesListSubPanel>:
 #    viewclass: "SubPlotItem_2d_quad"
 
     RecycleBoxLayout:                # you need this block to make the recycleview show items
-        default_size: None, dp(100)
+        default_size: None, dp(400)
         default_size_hint: 1, None
         size_hint_y: None
         height: self.minimum_height
@@ -725,15 +744,44 @@
 
     Button:
         text: root.axes_name
+        on_release: root.parent.parent.show_deletesubplot_dialog(root.axes_index)
 
     Label:
         text: "mesh: "+root.mesh_name
+        halign: 'left'
 
     Label:
         text: "case: "+root.case_name
 
     Label:
         text: "data: "+root.data_name
+
+    Label:
+        text: "poloidal region: "+root.ix_region
+
+    Label:
+        text: "radial region: "+root.iy_region
+
+    Label:
+        text: "mesh overlay: "+str(root.is_mesh_overlay)
+
+    Label:
+        text: "plot range x: ("+str(root.axes_x_min)+", "+str(root.axes_x_max)+")"
+
+    Label:
+        text: "plot range y: ("+str(root.axes_y_min)+", "+str(root.axes_y_max)+")"
+
+    Label:
+        text: "left: "+str(root.pos_axes_left)+", bottom: "+str(root.pos_axes_bottom)
+
+    Label:
+        text: "z: "+str(root.pos_axes_z)
+
+    Label:
+        text: "width: "+str(root.pos_axes_width)+", height:"+str(root.pos_axes_height)
+
+    Label:
+        text: "axes_index: "+str(root.axes_index)
 
 #################### end of figure and axes panel  ######
 
