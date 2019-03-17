@@ -7,19 +7,20 @@ from kivy.core.window import Window
 
 from kivy.uix.screenmanager import ScreenManager, Screen
 
+from kivy.uix.treeview import TreeView, TreeViewNode
+from kivy.uix.recycleview import RecycleView
+
+from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
+
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.spinner import Spinner
+from kivy.uix.textinput import TextInput
 
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from kivy.properties import BooleanProperty
 from kivy.properties import NumericProperty
-
-from kivy.uix.treeview import TreeView, TreeViewNode
-from kivy.uix.recycleview import RecycleView
-
-from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 
 # import custom modules
 
@@ -471,13 +472,26 @@ class AxesListSubPanel(RecycleView):
 
     def update_subplot_list(self):
         self.data = BPT.plots[BPT.current_plot]["AxesList_settings"]
+        self.refresh_from_data()        # has to manually trigger this event, if only the content is modified but len(data) is unchanged.
         self.dismiss_popup()
 
     def dismiss_popup(self):
         self._popup.dismiss()
 
+    def show_modifysubplot_dialot(self, plot_type, axes_index):
+
+        if plot_type is "2d_quad":
+            self._popup = Popup(title="Modify subplot", size_hint=(0.6, 0.8), pos_hint = {'top': 0.95}, 
+                            content=ModifySubplotDialog_2d_quad(load = self.update_subplot_list, cancel = self.dismiss_popup, modify_index = axes_index, try_delete = self.show_deletesubplot_dialog))
+            self._popup.open()
+        elif plot_type is "2d_tria":
+            pass
+        else:
+            pass
+
     def show_deletesubplot_dialog(self, axes_index):
-        self._popup = Popup(title="Modify subplot", size_hint=(0.3, 0.5), pos_hint = {'top': 0.95}, 
+        self.dismiss_popup()
+        self._popup = Popup(title="Delete subplot", size_hint=(0.3, 0.5), pos_hint = {'top': 0.95}, 
                             content=DeleteSubplotDialog(load = self.update_subplot_list, cancel = self.dismiss_popup, delete_index = axes_index))
         self._popup.open()
 
@@ -519,6 +533,8 @@ class DeleteSubplotDialog(BoxLayout):
 ########
 ########
 
+####  # 2d_quad special #
+
 class SubPlotItem_2d_quad(BoxLayout):    # view class of AxesListSubPanel if plot_type is 2d_quad
     # use selection at creation
     axes_name = StringProperty()
@@ -538,11 +554,30 @@ class SubPlotItem_2d_quad(BoxLayout):    # view class of AxesListSubPanel if plo
     axes_y_max = NumericProperty()
     pos_axes_left = NumericProperty()    # position of axes on canvas
     pos_axes_bottom = NumericProperty()
-    pos_axes_z = NumericProperty()
     pos_axes_width = NumericProperty()
     pos_axes_height = NumericProperty()  # BE CAREFUL! custom properties name should not conflict the built in keywords!
+    pos_axes_z = NumericProperty()
 
     pass
+
+class ModifySubplotDialog_2d_quad(BoxLayout):    # dialog to modify parameters for an axes/subplot for 2d_quad plot_type
+    load = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+    modify_index = NumericProperty()
+    message = ObjectProperty(None)
+    try_delete = ObjectProperty(None)
+
+    def tryload(self, axes_name, mesh_name, case_name, data_name, ix_region, iy_region, is_mesh_overlay, axes_x_min, axes_x_max, axes_y_min, axes_y_max, pos_axes_left, pos_axes_bottom, pos_axes_width, pos_axes_height, pos_axes_z):
+        if axes_name is "":
+            self.message.text = "subplot name must not be empty"
+        elif "" in {axes_x_min, axes_x_max, axes_y_min, axes_y_max, pos_axes_left, pos_axes_bottom, pos_axes_width, pos_axes_height, pos_axes_z}:
+            self.message.text = "must fill all input slots for parameters"
+        else:
+            BPT.modify_subplot(self.modify_index, "2d_quad", axes_name, mesh_name, case_name, data_name, ix_region, iy_region, is_mesh_overlay, axes_x_min, axes_x_max, axes_y_min, axes_y_max, pos_axes_left, pos_axes_bottom, pos_axes_width, pos_axes_height, pos_axes_z)
+#            print("modify_index: "+str(self.modify_index))
+            self.load()
+
+####  # end of 2d_quad special #
 
 ##################################
 
@@ -558,6 +593,16 @@ class FigDisplayPanel(BoxLayout):
 
     pass
 
+####################################################################
+####################################################################
+#################### custom small widgets ##########################
+
+class FloatInput(TextInput):
+    pass
+
+################ end of custom small widgets #######################
+####################################################################
+####################################################################
 
 ####################################################################
 ####################################################################
@@ -574,7 +619,7 @@ class FrontEndGUI(ScreenManager):
 
 class PrototypeApp(App):
     title = "DIVIEW prototype"
-    bdt = ObjectProperty(None)
+    bdt = ObjectProperty(None)    # do I need this line ???????????????????????????
     def build(self):
         self.bdt = BDT            # for reference to the BDT from inside .kv file
         self.bpt = BPT            # for reference to the BPT from inside .kv file
@@ -673,6 +718,8 @@ class BackendPlotTracker:
 #        print("index: "+str(self.current_plot))
 
 
+    #### Related to the AxesListSubpanel
+
     def add_subplot(self, axes_name, mesh_name, case_name, data_name):
 
         ## use input values for the following, universal for all types of plots
@@ -690,25 +737,51 @@ class BackendPlotTracker:
         # for 2d_quad type
         if GUI.root.plot_screen.plot_tabs_binder.tabs[self.current_plot]["plot_type"] is "2d_quad":
             self.plots[self.current_plot]["AxesList_settings"][-1]["ix_region"] = "full"        # poloidal cell index range
-            self.plots[self.current_plot]["AxesList_settings"][-1]["iy_region"] = "both"
+            self.plots[self.current_plot]["AxesList_settings"][-1]["iy_region"] = "both"        # radial cell index range
             self.plots[self.current_plot]["AxesList_settings"][-1]["is_mesh_overlay"] = False
         else:
             pass
 
         # for both 2d types
-        if GUI.root.plot_screen.plot_tabs_binder.tabs[self.current_plot]["plot_type"] in ("2d_quad", "2d_tria"):
+        if GUI.root.plot_screen.plot_tabs_binder.tabs[self.current_plot]["plot_type"] in {"2d_quad", "2d_tria"}:
             self.plots[self.current_plot]["AxesList_settings"][-1]["axes_x_min"] = 0.0               # plot range in meters
             self.plots[self.current_plot]["AxesList_settings"][-1]["axes_x_max"] = 1.0
             self.plots[self.current_plot]["AxesList_settings"][-1]["axes_y_min"] = -1.0
             self.plots[self.current_plot]["AxesList_settings"][-1]["axes_y_max"] = 1.0
             self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_left"] = 0.0                # position of axes on canvas
             self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_bottom"] = 0.0
-            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_z"] = 0
             self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_width"] = 0.8
             self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_height"] = 1.0
+            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_z"] = 0
         else:
             pass
 
+    def modify_subplot(self, modify_index, plot_type, axes_name, mesh_name, case_name, data_name, ix_region, iy_region, is_mesh_overlay, axes_x_min, axes_x_max, axes_y_min, axes_y_max, pos_axes_left, pos_axes_bottom, pos_axes_width, pos_axes_height, pos_axes_z):
+
+        self.plots[self.current_plot]["AxesList_settings"][modify_index]["axes_name"] = axes_name
+        self.plots[self.current_plot]["AxesList_settings"][modify_index]["mesh_name"] = mesh_name
+        self.plots[self.current_plot]["AxesList_settings"][modify_index]["case_name"] = case_name
+        self.plots[self.current_plot]["AxesList_settings"][modify_index]["data_name"] = data_name
+
+        if plot_type is "2d_quad":
+            self.plots[self.current_plot]["AxesList_settings"][modify_index]["ix_region"] = ix_region        # poloidal cell index range
+            self.plots[self.current_plot]["AxesList_settings"][modify_index]["iy_region"] = iy_region        # radial cell index range
+            self.plots[self.current_plot]["AxesList_settings"][modify_index]["is_mesh_overlay"] = is_mesh_overlay
+        else:
+            pass
+
+        if plot_type in {"2d_quad", "2d_tria"}:
+            self.plots[self.current_plot]["AxesList_settings"][-1]["axes_x_min"] = float(axes_x_min)
+            self.plots[self.current_plot]["AxesList_settings"][-1]["axes_x_max"] = float(axes_x_max)
+            self.plots[self.current_plot]["AxesList_settings"][-1]["axes_y_min"] = float(axes_y_min)
+            self.plots[self.current_plot]["AxesList_settings"][-1]["axes_y_max"] = float(axes_y_max)
+            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_left"] = float(pos_axes_left)
+            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_bottom"] = float(pos_axes_bottom)
+            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_width"] = float(pos_axes_width)
+            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_height"] = float(pos_axes_height)
+            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_z"] = int(pos_axes_z)
+        else:
+            pass
 
     def delete_subplot(self, axes_index):
 
@@ -717,6 +790,7 @@ class BackendPlotTracker:
         # update the axes_index property of each RecycleView item to match the corresponding index in the list
         for i in range(len(self.plots[self.current_plot]["AxesList_settings"])):
             self.plots[self.current_plot]["AxesList_settings"][i]["axes_index"] = i
+
 
     #### adding the list of plotables whenever a new mesh/case/data is added through the data screen
     #### have not decided whether this should be separate by plot_type, do not see necessity
