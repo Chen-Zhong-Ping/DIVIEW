@@ -21,12 +21,14 @@ from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from kivy.properties import BooleanProperty
 from kivy.properties import NumericProperty
+from kivy.properties import ListProperty
 
 # import custom modules
 
 from packages.data_classes.data2D import Data2D
 from packages.data_classes.mesh import Mesh
 
+from packages.plot_classes.tangram import Tangram
 
 # import standard modules
 
@@ -305,7 +307,7 @@ class PlotTabsBinder(TabbedPanel):
 
     def add_tab(self, plot_name, plot_type):
 
-        BPT.add_plot()
+        BPT.add_plot(plot_type)
 
         self.tabs[BPT.current_plot] = {}
 #        self.tabs[BPT.count]["plot_name"] = plot_name        # there is actually no need for a "plot_name" variable, use ["plot_tab"].text
@@ -581,15 +583,102 @@ class ModifySubplotDialog_2d_quad(BoxLayout):    # dialog to modify parameters f
 
 ##################################
 
-class ColorBarPanel_2d(BoxLayout):        # this looks generic to both 2d types
-#    index = NumericProperty()
+class ColorbarPanel_2d(BoxLayout):        # this looks generic to both 2d types
+    colorcodesubpanel = ObjectProperty(None)
+
+    def show_set_colorbar_dialog(self):
+        self._popup = Popup(title="set colorbar", size_hint=(0.25, 0.5), 
+                            content=SetColorbarDialog(add_bin=self.show_add_bin_dialog, import_colorbar=self.show_import_colorbar_dialog, save_colorbar=self.show_save_colorbar_dialog, update_settings=self.show_colorbarsettings_dialog, cancel=self.dismiss_popup))
+        self._popup.open()
+        pass
+
+    def show_add_bin_dialog(self):
+        self.dismiss_popup()
+        self._popup = Popup(title="add bin", size_hint=(0.25, 0.35), 
+                            content=AddBinDialog(load=self.add_bin, cancel=self.dismiss_popup))
+        self._popup.open()
+
+        pass
+
+    def add_bin(self):
+        self.colorcodesubpanel.update_colorbar()
+        self.dismiss_popup()
+
+    def show_import_colorbar_dialog(self):
+        self.dismiss_popup()
+        pass
+
+    def show_save_colorbar_dialog(self):
+        self.dismiss_popup()
+        pass
+
+    def show_colorbarsettings_dialog(self):
+        self.dismiss_popup()
+        self._popup = Popup(title="colorbar settings", size_hint=(0.4, 0.5), 
+                            content=ColorbarSettingsDialog(load=self.update_colorbar_settings, cancel=self.dismiss_popup))
+        self._popup.open()
+
+    def update_colorbar_settings(self):
+        self.dismiss_popup()
+
+    def dismiss_popup(self):
+        self._popup.dismiss()
 
     pass
+
+class SetColorbarDialog(BoxLayout):
+    add_bin = ObjectProperty(None)
+    import_colorbar = ObjectProperty(None)
+    save_colorbar = ObjectProperty(None)
+    update_settings = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+    pass
+
+class AddBinDialog(BoxLayout):
+    load = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+    message = ObjectProperty(None)
+
+    def tryload(self, bin_value, color_r, color_g, color_b, color_a):
+        if "" in {bin_value, color_r, color_g, color_b, color_a}:
+            self.message.text = "must fill all slots!"
+        elif 0 <= float(color_r) <= 1 and 0 <= float(color_g) <= 1 and 0 <= float(color_b) <= 1 and 0 <= float(color_a) <= 1 :
+            BPT.add_colorbar_bin(float(bin_value), (float(color_r), float(color_g), float(color_b), float(color_a)))
+            self.load()
+        else:
+            self.message.text = "color code must be in [0, 1]"
+
+    pass
+
+class ColorbarSettingsDialog(BoxLayout):
+    load = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+
+    pass
+
+class ColorCodeSubpanel(RecycleView):
+
+    def update_colorbar(self):
+        self.data = BPT.plots[BPT.current_plot]["Colorbar"]["RecycleViewData"]
+        self.data.reverse()
+
+    def add_bin(self):
+        self.dismiss_popup()
+
+    def dismiss_popup(self):
+        self._popup.dismiss()
+
+    pass
+
+
+class ColorCodeBin(BoxLayout):        # view class of ColorCodeSubpanel
+    bin_index = NumericProperty()     # use this to track each item, too bad RecycleView does not provide such function directly
+    bin_value_str = StringProperty()
+    bin_color = ListProperty()
 
 ###################################################
 
 class FigDisplayPanel(BoxLayout):
-#    index = NumericProperty()
 
     pass
 
@@ -690,6 +779,7 @@ class BackendDataTracker:
         pass
 
 ###############################
+###############################
 
 class BackendPlotTracker:
 
@@ -701,29 +791,37 @@ class BackendPlotTracker:
 
         self.plotables = {}    # providing list of data (names) can be ploted in the add subplot dialog
 
-    def add_plot(self):
+#### rule of separation: let the plot_screen keep track of the GUI widgets as its children, while BPT tracks the numbers and strings for plotting
+    #### use numbers as keys in the dictionary to track figs and axes, since the names can change.
+
+    def add_plot(self, plot_type):
 
         self.current_plot = self.count    # must update the current_plot index first!
 
         self.plots[self.count] = {}    # add a dict to BPT.plots, tracks all settings pertaining to this figure
         self.plots[self.count]["AxesList_settings"] = []    # this list will be the AxesListSubPanel(Recycleview) data
 
+        if plot_type in {"2d_quad", "2d_tria"}:
+            self.plots[self.count]["Colorbar"] = {} # track everything related to the colorbar
+            self.plots[self.count]["Colorbar"]["tangram"] = Tangram()    # the color mapping
+            self.plots[self.count]["Colorbar"]["RecycleViewData"] = [{"bin_index": 0, "bin_value_str": "", "bin_color": (0, 0, 0, 1)}]    # ColorCodeSubpanel(RecycleView) data
+        else:
+            pass
+
         self.count += 1
 
-    #### rule of separation: let the plot_screen keep track of the GUI widgets as its children, while BPT tracks the numbers and strings for plotting
-    #### use numbers as keys in the dictionary to track figs and axes, since the names can change.
-
+    
     def set_current_plot(self, index):
         self.current_plot = index
 #        print("index: "+str(self.current_plot))
 
 
-    #### Related to the AxesListSubpanel
+    ######## Related to the AxesListSubpanel ########
 
     def add_subplot(self, axes_name, mesh_name, case_name, data_name):
 
         ## use input values for the following, universal for all types of plots
-
+        # plot data related, use the keys to find the data in BDT
         self.plots[self.current_plot]["AxesList_settings"].append({})
         self.plots[self.current_plot]["AxesList_settings"][-1]["axes_name"] = axes_name
         self.plots[self.current_plot]["AxesList_settings"][-1]["mesh_name"] = mesh_name
@@ -733,6 +831,7 @@ class BackendPlotTracker:
         self.plots[self.current_plot]["AxesList_settings"][-1]["axes_index"] = len(self.plots[self.current_plot]["AxesList_settings"]) - 1
 
         ## set default values for the following
+        # axes setting related
 
         # for 2d_quad type
         if GUI.root.plot_screen.plot_tabs_binder.tabs[self.current_plot]["plot_type"] is "2d_quad":
@@ -810,6 +909,20 @@ class BackendPlotTracker:
         self.plotables[BDT.current_mesh][BDT.current_case].append(data_name)
 
     ####
+
+    ######## related to ColorBar panel ########
+
+    def add_colorbar_bin(self, bin_value, bin_color):
+        self.plots[self.current_plot]["Colorbar"]["tangram"].add_bin(bin_value, bin_color)
+        self.plots[self.current_plot]["Colorbar"]["RecycleViewData"].append({})
+        self.update_colorbar_view_data()
+
+    def update_colorbar_view_data(self):
+        self.plots[self.current_plot]["Colorbar"]["RecycleViewData"][0] = {"bin_index": 0, "bin_value_str": "", "bin_color": self.plots[self.current_plot]["Colorbar"]["tangram"].color[0]}
+
+        for i in range(len(self.plots[self.current_plot]["Colorbar"]["tangram"].bin)):
+            self.plots[self.current_plot]["Colorbar"]["RecycleViewData"][i+1] = {"bin_index": i+1, "bin_value_str": str(self.plots[self.current_plot]["Colorbar"]["tangram"].bin[i]), "bin_color": self.plots[self.current_plot]["Colorbar"]["tangram"].color[i+1]}
+            pass
 
 ###############################
 

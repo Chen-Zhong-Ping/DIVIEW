@@ -6,13 +6,13 @@ class Tangram:
     def __init__(self):
         
         self.bin = []
-        self.color = ['black']
+        self.color = [(0, 0, 0, 1)]
         
-    def addbin(self, newbin):
+    def add_bin(self, newbin, newcolor):
         if newbin not in self.bin:
             self.bin.append(newbin)
             self.bin.sort()
-            self.color.insert(self.bin.index(newbin), 'white')
+            self.color.insert(self.bin.index(newbin), newcolor)
         else:
             print("bin is already in the list! nothing done")
         

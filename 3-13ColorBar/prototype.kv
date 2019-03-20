@@ -572,7 +572,7 @@
         id: figdixplay_panel_id
         size_hint_x: 0.7
 
-    ColorBarPanel_2d:
+    ColorbarPanel_2d:
         id: colorbar_panel_id
         size_hint_x: 0.15
 
@@ -988,8 +988,186 @@
 
 ####
 
-<ColorBarPanel_2d>:              # shared by both _2d_quad and _2d_tria
+<ColorbarPanel_2d>:              # shared by both _2d_quad and _2d_tria
     orientation: 'vertical'
+    colorcodesubpanel: colorcodesubpanel_id
+
+#    Button:
+#        size_hint_y: 0.1
+#        text: "general cosmetics"
+
+    Button:
+        size_hint_y: 0.1
+        text: "set colorbar"
+        on_release: root.show_set_colorbar_dialog()
+
+    ColorCodeSubpanel:
+        size_hint_y: 0.9
+        id: colorcodesubpanel_id
+
+<SetColorbarDialog>:
+    orientation: 'vertical'
+
+    Button:
+        text: "add bin"
+        on_release: root.add_bin()
+
+    Button:
+        text: "import colorbar"
+        on_release: root.import_colorbar()
+
+    Button:
+        text: "save colorbar"
+        on_release: root.save_colorbar()
+
+    Button:
+        text: "update settings"
+        on_release: root.update_settings()
+
+    Button:
+        text: "cancel"
+        on_release: root.cancel()
+
+<AddBinDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        text: "enter bin value and color code"
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Label:
+            text: "bin value:"
+        FloatInput:
+            id: bin_value_id
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Label:
+            text: "R:"
+        FloatInput:
+            id: color_r_id
+            text: "1.0"
+
+        Label:
+            text: "G:"
+        FloatInput:
+            id: color_g_id
+            text: "1.0"
+
+        Label:
+            text: "B:"
+        FloatInput:
+            id: color_b_id
+            text: "1.0"
+
+        Label:
+            text: "A:"
+        FloatInput:
+            id: color_a_id
+            text: "1.0"
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Button:
+            text: "add bin"
+            on_release: root.tryload(bin_value_id.text, color_r_id.text, color_g_id.text, color_b_id.text, color_a_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+<ColorbarSettingsDialog>:
+    orientation: 'vertical'
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.25
+
+        Label:
+            text: "left:"
+        TextInput:
+            id: left_id
+        Label:
+            text: "bottom:"
+        TextInput:
+            id: bottom_id
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.25
+
+        Label:
+            text: "width:"
+        TextInput:
+            id: width_id
+        Label:
+            text: "height:"
+        TextInput:
+            id: height_id
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.25
+
+        Label:
+            text: "z:"
+        TextInput:
+            id: z_id
+        Label:
+            text: "show:"
+        CheckBox:
+            id: is_show_id
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.25
+
+        Button:
+            text: "update settings"
+            on_release: root.load()
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+
+<ColorCodeSubpanel>:
+    viewclass: "ColorCodeBin"
+
+    RecycleBoxLayout:                # you need this block to make the recycleview show items
+        default_size: None, dp(40)
+        default_size_hint: 1, None
+        size_hint_y: None
+        height: self.minimum_height
+        orientation: 'vertical'
+
+
+<ColorCodeBin>:
+    orientation: 'vertical'
+
+    BoxLayout:
+        size_hint_y: 0.6
+        orientation: 'horizontal'
+
+        Button:
+            background_normal: ''
+            background_color: root.bin_color
+        Label:        # dummy fill
+
+
+    BoxLayout:
+        size_hint_y: 0.4
+        orientation: 'horizontal'
+
+        Label:        # dummy fill
+        Label:
+            text: root.bin_value_str
 
 ##################
 
