@@ -659,10 +659,35 @@ class ColorbarSettingsDialog(BoxLayout):
 class ColorCodeSubpanel(RecycleView):
 
     def update_colorbar(self):
-        self.data = BPT.plots[BPT.current_plot]["Colorbar"]["RecycleViewData"]
-        self.data.reverse()
+        self.data = [*BPT.plots[BPT.current_plot]["Colorbar"]["RecycleViewData"]] # PYTHON!: this is a shallow copy.
+        self.data.reverse()         # you can do reverse() without changing the original list but keep in mind modifying a mutable item affects the original list as well! 
 
-    def add_bin(self):
+    def show_changebin_dialog(self, bin_index, original_color, original_bin_value_str):
+        if bin_index == 0:
+            self.show_changecolor_dialog(bin_index, original_color, False)
+        else:
+            self._popup = Popup(title="change bin/color", size_hint=(0.25, 0.4), 
+                            content=ChangeBinDialog(change_color=self.show_changecolor_dialog, change_bin_value=self.show_changebinvalue_dialog, cancel=self.dismiss_popup, bin_index = bin_index, original_color = original_color, original_bin_value_str = original_bin_value_str))
+            self._popup.open()
+
+    def show_changecolor_dialog(self, bin_index, original_color, is_popup_open):
+        if is_popup_open is True:        # when bin_index == 0 bypass ChangeBinDialog and go to ChangeColorDialog directly
+            self.dismiss_popup()
+        else:
+            pass
+        self._popup = Popup(title="change color", size_hint=(0.25, 0.25), 
+                            content=ChangeColorDialog(load=self.update_no_sort, cancel=self.dismiss_popup, color_bin_index = bin_index, original_color = original_color))
+        self._popup.open()
+
+    def show_changebinvalue_dialog(self, bin_index, original_bin_value_str):
+        self.dismiss_popup()
+        print(bin_index)
+        self._popup = Popup(title="change bin value", size_hint=(0.2, 0.25), 
+                            content=ChangeBinValueDialog(update_no_sort=self.update_no_sort, update_sort=self.update_colorbar, cancel=self.dismiss_popup, value_bin_index = bin_index - 1, original_value_str = original_bin_value_str))
+        self._popup.open()
+
+    def update_no_sort(self):
+        self.refresh_from_data()
         self.dismiss_popup()
 
     def dismiss_popup(self):
@@ -675,6 +700,52 @@ class ColorCodeBin(BoxLayout):        # view class of ColorCodeSubpanel
     bin_index = NumericProperty()     # use this to track each item, too bad RecycleView does not provide such function directly
     bin_value_str = StringProperty()
     bin_color = ListProperty()
+
+class ChangeBinDialog(BoxLayout):
+    change_color = ObjectProperty(None)
+    change_bin_value = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+    bin_index = NumericProperty()
+    original_color = ListProperty()
+    original_bin_value_str = StringProperty()
+
+class ChangeColorDialog(BoxLayout):
+    load = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+    color_bin_index = NumericProperty()
+    message =  ObjectProperty(None)
+    original_color = ListProperty()
+
+    def tryload(self, color_r, color_g, color_b, color_a):
+        if "" in {color_r, color_g, color_b, color_a}:
+            self.message.text = "must fill all slots!"
+        elif 0 <= float(color_r) <= 1 and 0 <= float(color_g) <= 1 and 0 <= float(color_b) <= 1 and 0 <= float(color_a) <= 1 :
+            BPT.change_color(self.color_bin_index, (float(color_r), float(color_g), float(color_b), float(color_a)))
+            self.load()
+        else:
+            self.message.text = "color code must be in [0, 1]"
+
+class ChangeBinValueDialog(BoxLayout):
+    update_no_sort = ObjectProperty(None)
+    update_sort = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+    value_bin_index = NumericProperty()
+    original_value_str =  StringProperty()
+    message =  ObjectProperty(None)
+
+    def tryload(self, new_binvalue_str):
+        if new_binvalue_str is "":
+            self.message.text = "bin value can't be empty"
+        else:
+            is_sorted = BPT.change_bin_value(self.value_bin_index, float(new_binvalue_str))
+            if is_sorted is False:
+                self.update_no_sort()
+            elif is_sorted is True:
+                self.update_sort()
+                self.cancel()         # to close the popup, don't bother changing ColorCodeSubpanel.update_colorbar() anymore
+            else:
+                self.message.text = "bin value already exists"
+                pass
 
 ###################################################
 
@@ -803,8 +874,8 @@ class BackendPlotTracker:
 
         if plot_type in {"2d_quad", "2d_tria"}:
             self.plots[self.count]["Colorbar"] = {} # track everything related to the colorbar
-            self.plots[self.count]["Colorbar"]["tangram"] = Tangram()    # the color mapping
-            self.plots[self.count]["Colorbar"]["RecycleViewData"] = [{"bin_index": 0, "bin_value_str": "", "bin_color": (0, 0, 0, 1)}]    # ColorCodeSubpanel(RecycleView) data
+            self.plots[self.current_plot]["Colorbar"]["tangram"] = Tangram()    # the color mapping
+            self.plots[self.current_plot]["Colorbar"]["RecycleViewData"] = [{"bin_index": 0, "bin_value_str": "", "bin_color": (0, 0, 0, 1)}]    # ColorCodeSubpanel(RecycleView) data
         else:
             pass
 
@@ -912,7 +983,7 @@ class BackendPlotTracker:
 
     ######## related to ColorBar panel ########
 
-    def add_colorbar_bin(self, bin_value, bin_color):
+    def add_colorbar_bin(self, bin_value, bin_color):       
         self.plots[self.current_plot]["Colorbar"]["tangram"].add_bin(bin_value, bin_color)
         self.plots[self.current_plot]["Colorbar"]["RecycleViewData"].append({})
         self.update_colorbar_view_data()
@@ -923,6 +994,22 @@ class BackendPlotTracker:
         for i in range(len(self.plots[self.current_plot]["Colorbar"]["tangram"].bin)):
             self.plots[self.current_plot]["Colorbar"]["RecycleViewData"][i+1] = {"bin_index": i+1, "bin_value_str": str(self.plots[self.current_plot]["Colorbar"]["tangram"].bin[i]), "bin_color": self.plots[self.current_plot]["Colorbar"]["tangram"].color[i+1]}
             pass
+
+    def change_color(self, bin_index, new_color):
+        self.plots[self.current_plot]["Colorbar"]["tangram"].color[bin_index] = new_color
+        self.plots[self.current_plot]["Colorbar"]["RecycleViewData"][bin_index]["bin_color"] = new_color
+        print("new color:")
+
+    def change_bin_value(self, value_bin_index, new_binvalue):
+        is_sorted = self.plots[self.current_plot]["Colorbar"]["tangram"].change_bin_value(value_bin_index, new_binvalue)
+        if is_sorted is False:
+            self.plots[self.current_plot]["Colorbar"]["RecycleViewData"][value_bin_index+1]["bin_value_str"] = str(new_binvalue)
+            return False
+        elif is_sorted is True:
+            self.update_colorbar_view_data()
+            return True
+        else:
+            return None
 
 ###############################
 

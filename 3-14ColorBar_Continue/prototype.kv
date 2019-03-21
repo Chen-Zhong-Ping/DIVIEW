@@ -1158,6 +1158,7 @@
         Button:
             background_normal: ''
             background_color: root.bin_color
+            on_release: root.parent.parent.show_changebin_dialog(root.bin_index, root.bin_color, root.bin_value_str)
         Label:        # dummy fill
 
 
@@ -1168,6 +1169,103 @@
         Label:        # dummy fill
         Label:
             text: root.bin_value_str
+
+
+<ChangeBinDialog>:
+    orientation: 'vertical'
+
+    Button:
+        text: "change color"
+        on_release: root.change_color(root.bin_index, root.original_color, True)
+
+    Button:
+        text: "change bin value"
+        on_release: root.change_bin_value(root.bin_index, root.original_bin_value_str)
+
+    Button:
+        text: "delete bin and color"
+
+    Button:
+        text: "cancel"
+        on_release: root.cancel()
+
+<ChangeColorDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        text: "change the color code"
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Label:
+            text: "R:"
+        FloatInput:
+            id: color_r_id
+            text: str(root.original_color[0])
+
+        Label:
+            text: "G:"
+        FloatInput:
+            id: color_g_id
+            text: str(root.original_color[1])
+
+        Label:
+            text: "B:"
+        FloatInput:
+            id: color_b_id
+            text: str(root.original_color[2])
+
+        Label:
+            text: "A:"
+        FloatInput:
+            id: color_a_id
+            text: str(root.original_color[3])
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Button:
+            text: "change color"
+            on_release: root.tryload(color_r_id.text, color_g_id.text, color_b_id.text, color_a_id.text)
+
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+<ChangeBinValueDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        text: "enter a new bin value"
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Label:
+            text: "bin value:"
+        FloatInput:
+            id: bin_value_id
+            text: root.original_value_str
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Button:
+            text: "update"
+            on_release: root.tryload(bin_value_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+        
+
+
 
 ##################
 

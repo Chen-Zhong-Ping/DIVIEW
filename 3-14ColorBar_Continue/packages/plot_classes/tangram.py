@@ -15,7 +15,19 @@ class Tangram:
             self.color.insert(self.bin.index(newbin), newcolor)
         else:
             print("bin is already in the list! nothing done")
-        
+
+    def change_bin_value(self, bin_index, new_binvalue):
+        if new_binvalue in self.bin :
+            print("bin value is already in the list! nothing done")
+            return None
+        else:
+            self.bin[bin_index] = new_binvalue
+            self.bin.sort()
+            if self.bin.index(new_binvalue) == bin_index:    # determine whether the bin list has been sorted or not
+                return False
+            else:
+                return True
+
     def map2color(self, value):
         if value >= self.bin[-1]:
             return self.color[-1]
