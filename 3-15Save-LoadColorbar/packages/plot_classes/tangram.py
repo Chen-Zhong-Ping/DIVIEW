@@ -36,3 +36,22 @@ class Tangram:
                 if value < self.bin[i]:
                     return self.color[i]
 
+    def write_colorbar(self, cb_file_name):
+        with open(cb_file_name, "w") as output_file:
+#            print(len(self.bin), file=output_file)
+            for value in self.bin:
+                print(value, file=output_file)
+            for colorcode in self.color:
+                print(f"{colorcode[0]} {colorcode[1]} {colorcode[2]} {colorcode[3]}", file=output_file)
+
+    def read_colorbar(self, cb_file):
+        lines = []
+        with open(cb_file, 'rt') as input_file :
+            for line in input_file :
+                lines.append(line)
+#        print((len(lines)-1)/2)    # note that (len(lines)-1)/2 will give you a float not integer .split()[0]
+#        print((len(lines)-1)//2)
+        self.bin = [float(lines[i]) for i in range((len(lines)-1)//2)]    # you need integer division //
+#        print(self.bin)
+        self.color = [(float(lines[i].split()[0]), float(lines[i].split()[1]), float(lines[i].split()[2]), float(lines[i].split()[3])) for i in range((len(lines)-1)//2, len(lines))]
+#        print(self.color)

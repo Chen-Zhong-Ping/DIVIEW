@@ -179,7 +179,7 @@
         id: filechooser_id
         path: "./"
         filters: ['*.sno']
-        dirselect: True        # trick to make double clicking open a directory
+        dirselect: True        # trick to make double clicking open a directory, downside is it selects a directory by single click
 
     BoxLayout:
         size_hint_y: 0.15
@@ -1082,55 +1082,122 @@
             text: "cancel"
             on_release: root.cancel()
 
-<ColorbarSettingsDialog>:
+<ImportColorbarDialog>:
     orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.15
+        text: "choose a .cb file"
+
+    FileChooserListView:
+        id: colorbarfilechooser_id
+        size_hint_y: 0.7
+        path: "./"
+        filters: ['*.cb']
 
     BoxLayout:
         orientation: 'horizontal'
-        size_hint_y: 0.25
+        size_hint_y: 0.15
+
+        Button:
+            text: "import"
+            on_release: root.tryload(colorbarfilechooser_id.selection)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+<SaveColorbarDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.3
+        text: "enter a file name:"
+
+    TextInput:
+        id: file_name_id
+        size_hint_y: 0.35
+        multiline: False
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.35
+
+        Button:
+            text: "save"
+            on_release: root.tryload(file_name_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+<ColorbarSettingsDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.16
+        text: "colorbar appearance on figure"
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.21
 
         Label:
             text: "left:"
-        TextInput:
+        FloatInput:
             id: left_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["Colorbar"]["Position_on_Figure"]["left"])
         Label:
             text: "bottom:"
-        TextInput:
+        FloatInput:
             id: bottom_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["Colorbar"]["Position_on_Figure"]["bottom"])
 
     BoxLayout:
         orientation: 'horizontal'
-        size_hint_y: 0.25
+        size_hint_y: 0.21
 
         Label:
             text: "width:"
-        TextInput:
+        FloatInput:
             id: width_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["Colorbar"]["Position_on_Figure"]["width"])
         Label:
             text: "height:"
-        TextInput:
+        FloatInput:
             id: height_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["Colorbar"]["Position_on_Figure"]["height"])
 
     BoxLayout:
         orientation: 'horizontal'
-        size_hint_y: 0.25
+        size_hint_y: 0.21
 
         Label:
             text: "z:"
         TextInput:
             id: z_id
+            input_filter: 'int'
+            multiline: False
+            text: str(app.bpt.plots[app.bpt.current_plot]["Colorbar"]["Position_on_Figure"]["z"])
         Label:
             text: "show:"
         CheckBox:
             id: is_show_id
+            active: app.bpt.plots[app.bpt.current_plot]["Colorbar"]["Position_on_Figure"]["is_show"]
 
     BoxLayout:
         orientation: 'horizontal'
-        size_hint_y: 0.25
+        size_hint_y: 0.21
 
         Button:
             text: "update settings"
-            on_release: root.load()
+            on_release: root.tryload(left_id.text, bottom_id.text, width_id.text, height_id.text, z_id.text, is_show_id.active)
 
         Button:
             text: "cancel"

@@ -595,31 +595,36 @@ class ColorbarPanel_2d(BoxLayout):        # this looks generic to both 2d types
     def show_add_bin_dialog(self):
         self.dismiss_popup()
         self._popup = Popup(title="add bin", size_hint=(0.25, 0.35), 
-                            content=AddBinDialog(load=self.add_bin, cancel=self.dismiss_popup))
+                            content=AddBinDialog(load=self.update_colorcodesubpanel, cancel=self.dismiss_popup))
         self._popup.open()
 
-        pass
-
-    def add_bin(self):
+    def update_colorcodesubpanel(self):
         self.colorcodesubpanel.update_colorbar()
         self.dismiss_popup()
+        pass
 
     def show_import_colorbar_dialog(self):
         self.dismiss_popup()
+        self._popup = Popup(title="import colorbar file", size_hint=(0.25, 0.45), 
+                            content=ImportColorbarDialog(load=self.update_colorcodesubpanel, cancel=self.dismiss_popup))
+        self._popup.open()
         pass
 
     def show_save_colorbar_dialog(self):
         self.dismiss_popup()
+        self._popup = Popup(title="save colorbar to file", size_hint=(0.2, 0.25), 
+                            content=SaveColorbarDialog(cancel=self.dismiss_popup))
+        self._popup.open()
         pass
 
     def show_colorbarsettings_dialog(self):
         self.dismiss_popup()
-        self._popup = Popup(title="colorbar settings", size_hint=(0.4, 0.5), 
-                            content=ColorbarSettingsDialog(load=self.update_colorbar_settings, cancel=self.dismiss_popup))
+        self._popup = Popup(title="colorbar settings", size_hint=(0.35, 0.4), 
+                            content=ColorbarSettingsDialog(cancel=self.dismiss_popup))
         self._popup.open()
 
-    def update_colorbar_settings(self):
-        self.dismiss_popup()
+#    def update_colorbar_settings(self):
+#        self.dismiss_popup()
 
     def dismiss_popup(self):
         self._popup.dismiss()
@@ -650,10 +655,44 @@ class AddBinDialog(BoxLayout):
 
     pass
 
-class ColorbarSettingsDialog(BoxLayout):
+class ImportColorbarDialog(BoxLayout):
     load = ObjectProperty(None)
     cancel = ObjectProperty(None)
+    message = ObjectProperty(None)
 
+    def tryload(self, cb_file_selection):
+        if len(cb_file_selection) == 0:
+            self.message.text = "no file selected"
+        else:
+            BPT.import_colorbar(cb_file_selection[0])
+            self.load()
+
+class SaveColorbarDialog(BoxLayout):
+    cancel = ObjectProperty(None)
+    message = ObjectProperty(None)
+
+    def tryload(self, file_name):
+        if file_name is "":
+            self.message.text = "file name cannot be empty"
+        elif len(BPT.plots[BPT.current_plot]["Colorbar"]["tangram"].bin) == 0:
+            self.message.text = "colorbar is empty, nothing done"
+        else:
+            BPT.plots[BPT.current_plot]["Colorbar"]["tangram"].write_colorbar(file_name+".cb")
+            self.cancel()
+    pass
+
+class ColorbarSettingsDialog(BoxLayout):
+    cancel = ObjectProperty(None)
+    message = ObjectProperty(None)
+
+    def tryload(self, cb_left, cb_bottom, cb_width, cb_height, cb_z, is_show):
+        if "" in {cb_left, cb_bottom, cb_width, cb_height, cb_z}:
+            self.message.text = "must fill all slots!"
+        elif 0 <= float(cb_left) <= 1 and 0 <= float(cb_bottom) <= 1 and 0 <= float(cb_width) <= 1 and 0 <= float(cb_height) <= 1 :
+            BPT.update_colorbar_settings_on_fig(float(cb_left), float(cb_bottom), float(cb_width), float(cb_height), int(cb_z), is_show)
+            self.cancel()
+        else:
+            self.message.text = "pos & size must be in [0, 1]"
     pass
 
 class ColorCodeSubpanel(RecycleView):
@@ -876,6 +915,7 @@ class BackendPlotTracker:
             self.plots[self.count]["Colorbar"] = {} # track everything related to the colorbar
             self.plots[self.current_plot]["Colorbar"]["tangram"] = Tangram()    # the color mapping
             self.plots[self.current_plot]["Colorbar"]["RecycleViewData"] = [{"bin_index": 0, "bin_value_str": "", "bin_color": (0, 0, 0, 1)}]    # ColorCodeSubpanel(RecycleView) data
+            self.plots[self.current_plot]["Colorbar"]["Position_on_Figure"] = {"left": 0.85, "bottom": 0.1, "width": 0.3, "height": 0.9, "z": 1, "is_show": True}
         else:
             pass
 
@@ -985,20 +1025,19 @@ class BackendPlotTracker:
 
     def add_colorbar_bin(self, bin_value, bin_color):       
         self.plots[self.current_plot]["Colorbar"]["tangram"].add_bin(bin_value, bin_color)
-        self.plots[self.current_plot]["Colorbar"]["RecycleViewData"].append({})
         self.update_colorbar_view_data()
 
     def update_colorbar_view_data(self):
-        self.plots[self.current_plot]["Colorbar"]["RecycleViewData"][0] = {"bin_index": 0, "bin_value_str": "", "bin_color": self.plots[self.current_plot]["Colorbar"]["tangram"].color[0]}
+        self.plots[self.current_plot]["Colorbar"]["RecycleViewData"] = [{"bin_index": 0, "bin_value_str": "", "bin_color": self.plots[self.current_plot]["Colorbar"]["tangram"].color[0]}] + [{"bin_index": i+1, "bin_value_str": str(self.plots[self.current_plot]["Colorbar"]["tangram"].bin[i]), "bin_color": self.plots[self.current_plot]["Colorbar"]["tangram"].color[i+1]} for i in range(len(self.plots[self.current_plot]["Colorbar"]["tangram"].bin))]
 
-        for i in range(len(self.plots[self.current_plot]["Colorbar"]["tangram"].bin)):
-            self.plots[self.current_plot]["Colorbar"]["RecycleViewData"][i+1] = {"bin_index": i+1, "bin_value_str": str(self.plots[self.current_plot]["Colorbar"]["tangram"].bin[i]), "bin_color": self.plots[self.current_plot]["Colorbar"]["tangram"].color[i+1]}
-            pass
+    def import_colorbar(self, cb_file):
+        self.plots[self.current_plot]["Colorbar"]["tangram"].read_colorbar(cb_file)
+        self.update_colorbar_view_data()
 
     def change_color(self, bin_index, new_color):
         self.plots[self.current_plot]["Colorbar"]["tangram"].color[bin_index] = new_color
         self.plots[self.current_plot]["Colorbar"]["RecycleViewData"][bin_index]["bin_color"] = new_color
-        print("new color:")
+#        print("new color:")
 
     def change_bin_value(self, value_bin_index, new_binvalue):
         is_sorted = self.plots[self.current_plot]["Colorbar"]["tangram"].change_bin_value(value_bin_index, new_binvalue)
@@ -1011,6 +1050,9 @@ class BackendPlotTracker:
         else:
             return None
 
+    def update_colorbar_settings_on_fig(self, left, bottom, width, height, z, is_show):
+        self.plots[self.current_plot]["Colorbar"]["Position_on_Figure"] = {"left": left, "bottom": bottom, "width": width, "height": height, "z": z, "is_show": is_show}
+
 ###############################
 
 BDT = BackendDataTracker()        # reference to the backend data handling
@@ -1022,8 +1064,3 @@ Window.size = (1200, 600)        # set the initial window size upon launching
 GUI = PrototypeApp()            # reference to the frontend GUI, from inside this .py script
 GUI.run()                # this has to be the last line, once App.run() is called, the session enters the GUI and we go from there.
 
-
-#if __name__ == "__main__":        # this has to be at the end
-#    PrototypeApp().run()
-#    running_app= App.get_running_app()
-#    GUI = running_app.root
