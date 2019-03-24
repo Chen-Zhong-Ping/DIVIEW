@@ -23,6 +23,8 @@ from kivy.properties import BooleanProperty
 from kivy.properties import NumericProperty
 from kivy.properties import ListProperty
 
+from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
+
 # import custom modules
 
 from packages.data_classes.data2D import Data2D
@@ -35,6 +37,7 @@ from packages.plot_classes.tangram import Tangram
 import os.path
 import numpy
 
+from matplotlib import pyplot
 
 ####################################################################
 ################## panel for a list of mesh ########################
@@ -318,7 +321,7 @@ class PlotTabsBinder(TabbedPanel):
 #        else:
 #            pass                # later will add other types of plots.
 
-        self.tabs[BPT.current_plot]["plot_tab"] = PlotTab(plot_name, plot_type)    # track each tab
+        self.tabs[BPT.current_plot]["plot_tab"] = PlotTab(plot_name, plot_type, BPT.current_plot)    # track each tab
         self.add_widget(self.tabs[BPT.current_plot]["plot_tab"])
         self.switch_to(self.tabs[BPT.current_plot]["plot_tab"])
 
@@ -345,17 +348,15 @@ class AddTabDialog(BoxLayout):
         if plot_name is "" :
             self.message.text = "Enter a name for the plot!"        # warning message
         else:
-#            BPT.add_plot(plot_name, polt_type)
             self.load(plot_name, polt_type)        # plot_name, polt_type
     pass
 
 class PlotTab(TabbedPanelItem):
-#    index = NumericProperty()
 
-    def __init__(self, plot_name, plot_type, **kwargs):
+    def __init__(self, plot_name, plot_type, plot_index, **kwargs):
         super(PlotTab, self).__init__(**kwargs)
         self.text = plot_name
-#        self.index = index        # use index(won't change) rather than plot_name(may change) to track each plot
+        self.plot_index = plot_index        # use index(won't change) rather than plot_name(may change) to track each plot
 #        self.add_widget(PlotDesk(plot_type, index))        # had to do this to correctly pass the index, for some reason can't make it work in kv file
 
         # step1: initiallize a plot_desk:
@@ -377,7 +378,6 @@ class PlotTab(TabbedPanelItem):
 ##################################################
 
 class PlotDesk_2d(BoxLayout):
-#    index = NumericProperty()
 
     figaxes_panel = ObjectProperty(None)
     figdixplay_panel = ObjectProperty(None)
@@ -790,6 +790,12 @@ class ChangeBinValueDialog(BoxLayout):
 
 class FigDisplayPanel(BoxLayout):
 
+    def __init__(self, **kwargs):
+        super(FigDisplayPanel, self).__init__(**kwargs)
+
+        self.fig_canvas = FigureCanvasKivyAgg(BPT.plots[BPT.current_plot]["Figure"])
+        self.add_widget(self.fig_canvas)
+
     pass
 
 ####################################################################
@@ -909,13 +915,22 @@ class BackendPlotTracker:
         self.current_plot = self.count    # must update the current_plot index first!
 
         self.plots[self.count] = {}    # add a dict to BPT.plots, tracks all settings pertaining to this figure
+
+        self.plots[self.count]["Figure"] = pyplot.figure()
+        self.plots[self.count]["AxesList"] = []    # a list of Axes not including the colorbar axes
+
         self.plots[self.count]["AxesList_settings"] = []    # this list will be the AxesListSubPanel(Recycleview) data
 
         if plot_type in {"2d_quad", "2d_tria"}:
             self.plots[self.count]["Colorbar"] = {} # track everything related to the colorbar
-            self.plots[self.current_plot]["Colorbar"]["tangram"] = Tangram()    # the color mapping
-            self.plots[self.current_plot]["Colorbar"]["RecycleViewData"] = [{"bin_index": 0, "bin_value_str": "", "bin_color": (0, 0, 0, 1)}]    # ColorCodeSubpanel(RecycleView) data
-            self.plots[self.current_plot]["Colorbar"]["Position_on_Figure"] = {"left": 0.85, "bottom": 0.1, "width": 0.3, "height": 0.9, "z": 1, "is_show": True}
+            self.plots[self.count]["Colorbar"]["tangram"] = Tangram()    # the color mapping
+            self.plots[self.count]["Colorbar"]["RecycleViewData"] = [{"bin_index": 0, "bin_value_str": "", "bin_color": (0, 0, 0, 1)}]    # ColorCodeSubpanel(RecycleView) data
+            self.plots[self.count]["Colorbar"]["Position_on_Figure"] = {"left": 0.85, "bottom": 0.1, "width": 0.3, "height": 0.9, "z": 1, "is_show": True}
+
+            # add a special colorbar axes to the figure
+            self.plots[self.count]["Colorbar"]["Axes"] = self.plots[self.count]["Figure"].add_axes((0.85, 0.1, 0.3, 0.9))
+            self.plots[self.count]["Colorbar"]["Axes"].set_axis_off()
+
         else:
             pass
 
@@ -939,6 +954,7 @@ class BackendPlotTracker:
         self.plots[self.current_plot]["AxesList_settings"][-1]["case_name"] = case_name
         self.plots[self.current_plot]["AxesList_settings"][-1]["data_name"] = data_name
 
+        # this "axes_index" key will let the RecycleView "data" to track each item, the viewclass has a corresponding NumericProperty
         self.plots[self.current_plot]["AxesList_settings"][-1]["axes_index"] = len(self.plots[self.current_plot]["AxesList_settings"]) - 1
 
         ## set default values for the following
@@ -958,13 +974,18 @@ class BackendPlotTracker:
             self.plots[self.current_plot]["AxesList_settings"][-1]["axes_x_max"] = 1.0
             self.plots[self.current_plot]["AxesList_settings"][-1]["axes_y_min"] = -1.0
             self.plots[self.current_plot]["AxesList_settings"][-1]["axes_y_max"] = 1.0
-            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_left"] = 0.0                # position of axes on canvas
-            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_bottom"] = 0.0
+            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_left"] = 0.05                # position of axes on canvas
+            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_bottom"] = 0.05
             self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_width"] = 0.8
             self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_height"] = 1.0
             self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_z"] = 0
         else:
             pass
+
+        ## append a matplotlib Axes to the list of Axes
+        self.plots[self.current_plot]["AxesList"].append(self.plots[self.current_plot]["Figure"].add_axes((0.05, 0.05, 0.8, 1)))
+
+# GUI.root.plot_screen.plot_tabs_binder.tabs[self.current_plot]["plot_tab"].plot_desk.figdixplay_panel.
 
     def modify_subplot(self, modify_index, plot_type, axes_name, mesh_name, case_name, data_name, ix_region, iy_region, is_mesh_overlay, axes_x_min, axes_x_max, axes_y_min, axes_y_max, pos_axes_left, pos_axes_bottom, pos_axes_width, pos_axes_height, pos_axes_z):
 
@@ -995,12 +1016,18 @@ class BackendPlotTracker:
 
     def delete_subplot(self, axes_index):
 
+        ## update the RecycleView data
         del self.plots[self.current_plot]["AxesList_settings"][axes_index]
 
         # update the axes_index property of each RecycleView item to match the corresponding index in the list
         for i in range(len(self.plots[self.current_plot]["AxesList_settings"])):
             self.plots[self.current_plot]["AxesList_settings"][i]["axes_index"] = i
 
+        ## remove the axes from the fiture in matplotlib
+        self.plots[self.current_plot]["Figure"].delaxes(self.plots[self.current_plot]["AxesList"][axes_index])
+
+        # delete the axes from the list
+        del self.plots[self.current_plot]["AxesList"][axes_index]
 
     #### adding the list of plotables whenever a new mesh/case/data is added through the data screen
     #### have not decided whether this should be separate by plot_type, do not see necessity
