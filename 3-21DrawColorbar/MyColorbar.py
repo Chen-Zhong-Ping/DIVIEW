@@ -714,7 +714,7 @@ class ColorCodeSubpanel(RecycleView):
             self.dismiss_popup()
         else:
             pass
-        self._popup = Popup(title="change color", size_hint=(0.25, 0.25), 
+        self._popup = Popup(title="change color", size_hint=(0.35, 0.25), 
                             content=ChangeColorDialog(load=self.update_no_sort, cancel=self.dismiss_popup, color_bin_index = bin_index, original_color = original_color))
         self._popup.open()
 
@@ -795,6 +795,15 @@ class FigDisplayPanel(BoxLayout):
 
         self.fig_canvas = FigureCanvasKivyAgg(BPT.plots[BPT.current_plot]["Figure"])
         self.add_widget(self.fig_canvas)
+
+    def draw_figure(self):
+
+        if BPT.plots[BPT.current_plot]["Colorbar"]["is_changed"] == True :
+            BPT.plots[BPT.current_plot]["Colorbar"]["tangram"].draw_colorbar("vertical")
+        else:
+            pass
+
+        self.fig_canvas.draw()
 
     pass
 
@@ -923,13 +932,14 @@ class BackendPlotTracker:
 
         if plot_type in {"2d_quad", "2d_tria"}:
             self.plots[self.count]["Colorbar"] = {} # track everything related to the colorbar
-            self.plots[self.count]["Colorbar"]["tangram"] = Tangram()    # the color mapping
+            self.plots[self.count]["Colorbar"]["tangram"] = Tangram(self.plots[self.count]["Figure"].add_axes((0.85, 0.05, 0.3, 0.9)))    # instantiate a color code mapping, add an colorbar axes to the figure and assign it to the class instance variable (see tangram.py)
             self.plots[self.count]["Colorbar"]["RecycleViewData"] = [{"bin_index": 0, "bin_value_str": "", "bin_color": (0, 0, 0, 1)}]    # ColorCodeSubpanel(RecycleView) data
-            self.plots[self.count]["Colorbar"]["Position_on_Figure"] = {"left": 0.85, "bottom": 0.1, "width": 0.3, "height": 0.9, "z": 1, "is_show": True}
+            self.plots[self.count]["Colorbar"]["Position_on_Figure"] = {"left": 0.85, "bottom": 0.05, "width": 0.3, "height": 0.9, "z": 1, "is_show": True}
+            self.plots[self.count]["Colorbar"]["is_changed"] = False
 
             # add a special colorbar axes to the figure
-            self.plots[self.count]["Colorbar"]["Axes"] = self.plots[self.count]["Figure"].add_axes((0.85, 0.1, 0.3, 0.9))
-            self.plots[self.count]["Colorbar"]["Axes"].set_axis_off()
+#            self.plots[self.count]["Colorbar"]["Axes"] = self.plots[self.count]["Figure"].add_axes((0.85, 0.1, 0.3, 0.9))
+#            self.plots[self.count]["Colorbar"]["Axes"].set_axis_off()
 
         else:
             pass
@@ -1053,6 +1063,7 @@ class BackendPlotTracker:
     def add_colorbar_bin(self, bin_value, bin_color):       
         self.plots[self.current_plot]["Colorbar"]["tangram"].add_bin(bin_value, bin_color)
         self.update_colorbar_view_data()
+        self.plots[self.current_plot]["Colorbar"]["is_changed"] = True
 
     def update_colorbar_view_data(self):
         self.plots[self.current_plot]["Colorbar"]["RecycleViewData"] = [{"bin_index": 0, "bin_value_str": "", "bin_color": self.plots[self.current_plot]["Colorbar"]["tangram"].color[0]}] + [{"bin_index": i+1, "bin_value_str": str(self.plots[self.current_plot]["Colorbar"]["tangram"].bin[i]), "bin_color": self.plots[self.current_plot]["Colorbar"]["tangram"].color[i+1]} for i in range(len(self.plots[self.current_plot]["Colorbar"]["tangram"].bin))]
@@ -1060,14 +1071,16 @@ class BackendPlotTracker:
     def import_colorbar(self, cb_file):
         self.plots[self.current_plot]["Colorbar"]["tangram"].read_colorbar(cb_file)
         self.update_colorbar_view_data()
+        self.plots[self.current_plot]["Colorbar"]["is_changed"] = True
 
     def change_color(self, bin_index, new_color):
         self.plots[self.current_plot]["Colorbar"]["tangram"].color[bin_index] = new_color
         self.plots[self.current_plot]["Colorbar"]["RecycleViewData"][bin_index]["bin_color"] = new_color
-#        print("new color:")
+        self.plots[self.current_plot]["Colorbar"]["is_changed"] = True
 
     def change_bin_value(self, value_bin_index, new_binvalue):
         is_sorted = self.plots[self.current_plot]["Colorbar"]["tangram"].change_bin_value(value_bin_index, new_binvalue)
+        self.plots[self.current_plot]["Colorbar"]["is_changed"] = True
         if is_sorted is False:
             self.plots[self.current_plot]["Colorbar"]["RecycleViewData"][value_bin_index+1]["bin_value_str"] = str(new_binvalue)
             return False
@@ -1079,6 +1092,13 @@ class BackendPlotTracker:
 
     def update_colorbar_settings_on_fig(self, left, bottom, width, height, z, is_show):
         self.plots[self.current_plot]["Colorbar"]["Position_on_Figure"] = {"left": left, "bottom": bottom, "width": width, "height": height, "z": z, "is_show": is_show}
+
+        self.plots[self.current_plot]["Colorbar"]["tangram"].axes.set_position((left, bottom, width, height))
+        self.plots[self.current_plot]["Colorbar"]["tangram"].axes.set_zorder(z)
+
+        # since it is only the axes position changing not the content, so no need to redraw the colorbar, does not need the following
+#        self.plots[self.current_plot]["Colorbar"]["is_changed"] = True
+     
 
 ###############################
 
