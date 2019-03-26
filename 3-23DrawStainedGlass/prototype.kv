@@ -864,7 +864,7 @@
                 Spinner:
                     id: ix_region_spinner_id
                     sync_height: True
-                    values: ("outer divertor", "inner divertor", "full")
+                    values: ("outer_divertor", "inner_divertor", "full")
                     text: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["ix_region"]
 
             BoxLayout:
@@ -987,7 +987,7 @@
 
 #################### end of figure and axes panel  ######
 
-####
+####  # colorbar panel
 
 <ColorbarPanel_2d>:              # shared by both _2d_quad and _2d_tria
     orientation: 'vertical'
@@ -1334,8 +1334,7 @@
         
 
 
-
-##################
+################## end of colorbar panel ##########
 
 <FigDisplayPanel>:               # shared by all three types of plots
 

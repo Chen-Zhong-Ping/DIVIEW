@@ -31,6 +31,7 @@ from packages.data_classes.data2D import Data2D
 from packages.data_classes.mesh import Mesh
 
 from packages.plot_classes.tangram import Tangram
+from packages.plot_classes.stainedglass import StainedGlass2DQuad
 
 # import standard modules
 
@@ -798,10 +799,7 @@ class FigDisplayPanel(BoxLayout):
 
     def draw_figure(self):
 
-        if BPT.plots[BPT.current_plot]["Colorbar"]["is_changed"] == True :
-            BPT.plots[BPT.current_plot]["Colorbar"]["tangram"].draw_colorbar("vertical")
-        else:
-            pass
+        BPT.draw_current_plot()
 
         self.fig_canvas.draw()
 
@@ -926,8 +924,9 @@ class BackendPlotTracker:
         self.plots[self.count] = {}    # add a dict to BPT.plots, tracks all settings pertaining to this figure
 
         self.plots[self.count]["Figure"] = pyplot.figure()
-        self.plots[self.count]["AxesList"] = []    # a list of Axes not including the colorbar axes
 
+        # keep track of a list of plot objects (custom class contains matplotlib axes with collections)
+        self.plots[self.count]["AxesList"] = []    # a list of plot objects not including the colorbar
         self.plots[self.count]["AxesList_settings"] = []    # this list will be the AxesListSubPanel(Recycleview) data
 
         if plot_type in {"2d_quad", "2d_tria"}:
@@ -936,11 +935,6 @@ class BackendPlotTracker:
             self.plots[self.count]["Colorbar"]["RecycleViewData"] = [{"bin_index": 0, "bin_value_str": "", "bin_color": (0, 0, 0, 1)}]    # ColorCodeSubpanel(RecycleView) data
             self.plots[self.count]["Colorbar"]["Position_on_Figure"] = {"left": 0.85, "bottom": 0.05, "width": 0.3, "height": 0.9, "z": 1, "is_show": True}
             self.plots[self.count]["Colorbar"]["is_changed"] = False
-
-            # add a special colorbar axes to the figure
-#            self.plots[self.count]["Colorbar"]["Axes"] = self.plots[self.count]["Figure"].add_axes((0.85, 0.1, 0.3, 0.9))
-#            self.plots[self.count]["Colorbar"]["Axes"].set_axis_off()
-
         else:
             pass
 
@@ -970,14 +964,6 @@ class BackendPlotTracker:
         ## set default values for the following
         # axes setting related
 
-        # for 2d_quad type
-        if GUI.root.plot_screen.plot_tabs_binder.tabs[self.current_plot]["plot_type"] is "2d_quad":
-            self.plots[self.current_plot]["AxesList_settings"][-1]["ix_region"] = "full"        # poloidal cell index range
-            self.plots[self.current_plot]["AxesList_settings"][-1]["iy_region"] = "both"        # radial cell index range
-            self.plots[self.current_plot]["AxesList_settings"][-1]["is_mesh_overlay"] = False
-        else:
-            pass
-
         # for both 2d types
         if GUI.root.plot_screen.plot_tabs_binder.tabs[self.current_plot]["plot_type"] in {"2d_quad", "2d_tria"}:
             self.plots[self.current_plot]["AxesList_settings"][-1]["axes_x_min"] = 0.0               # plot range in meters
@@ -992,8 +978,29 @@ class BackendPlotTracker:
         else:
             pass
 
-        ## append a matplotlib Axes to the list of Axes
-        self.plots[self.current_plot]["AxesList"].append(self.plots[self.current_plot]["Figure"].add_axes((0.05, 0.05, 0.8, 1)))
+        # for 2d_quad type
+        if GUI.root.plot_screen.plot_tabs_binder.tabs[self.current_plot]["plot_type"] is "2d_quad":
+            self.plots[self.current_plot]["AxesList_settings"][-1]["ix_region"] = "outer_divertor"        # poloidal cell index range
+            self.plots[self.current_plot]["AxesList_settings"][-1]["iy_region"] = "both"        # radial cell index range
+            self.plots[self.current_plot]["AxesList_settings"][-1]["is_mesh_overlay"] = False            
+        else:
+            pass
+
+        ## append the list of plot objects, keep track of the change as well
+        self.plots[self.current_plot]["AxesList"].append({})
+
+        # for 2d_quad type
+        if GUI.root.plot_screen.plot_tabs_binder.tabs[self.current_plot]["plot_type"] is "2d_quad":
+
+            # dictionary keeps track of what has been changed to determine how it will be redrawn
+            # here only "coords": True matters, indicate a complete redrawn for the first time.
+            self.plots[self.current_plot]["AxesList"][-1]["changed"] = {"coords": True, "color_formula": False, "frame": False, "axes_position": False, "axes_plot_range": False}
+
+            # create a stainedglass and append it to the list of stainedglass objects  "2d_quad"
+            self.plots[self.current_plot]["AxesList"][-1]["stainedglass"] = StainedGlass2DQuad(self.plots[self.current_plot]["Figure"].add_axes((0.05, 0.05, 0.8, 1)))
+        else:
+            pass
+
 
 # GUI.root.plot_screen.plot_tabs_binder.tabs[self.current_plot]["plot_tab"].plot_desk.figdixplay_panel.
 
@@ -1033,11 +1040,13 @@ class BackendPlotTracker:
         for i in range(len(self.plots[self.current_plot]["AxesList_settings"])):
             self.plots[self.current_plot]["AxesList_settings"][i]["axes_index"] = i
 
-        ## remove the axes from the fiture in matplotlib
-        self.plots[self.current_plot]["Figure"].delaxes(self.plots[self.current_plot]["AxesList"][axes_index])
+        if GUI.root.plot_screen.plot_tabs_binder.tabs[self.current_plot]["plot_type"] in {"2d_quad", "2d_tria"}:
 
-        # delete the axes from the list
-        del self.plots[self.current_plot]["AxesList"][axes_index]
+            ## remove the axes from the fiture in matplotlib
+            self.plots[self.current_plot]["Figure"].delaxes(self.plots[self.current_plot]["AxesList"][axes_index]["stainedglass"].axes)
+
+            # delete the axes from the list
+            del self.plots[self.current_plot]["AxesList"][axes_index]
 
     #### adding the list of plotables whenever a new mesh/case/data is added through the data screen
     #### have not decided whether this should be separate by plot_type, do not see necessity
@@ -1099,6 +1108,72 @@ class BackendPlotTracker:
         # since it is only the axes position changing not the content, so no need to redraw the colorbar, does not need the following
 #        self.plots[self.current_plot]["Colorbar"]["is_changed"] = True
      
+
+    #########################################
+
+    #### related to drawing the axes
+
+    def draw_current_plot(self):
+
+        if GUI.root.plot_screen.plot_tabs_binder.tabs[self.current_plot]["plot_type"] in {"2d_quad", "2d_tria"}:
+
+            # redraw each stainedglass in the list if needed
+            for axes_item in self.plots[self.current_plot]["AxesList_settings"]:
+
+                # if the whole stainedglass has to be redrawn
+                if self.plots[self.current_plot]["AxesList"][axes_item["axes_index"]]["changed"]["coords"] == True:
+
+                    ## use temporary variables to make source code more easily understood
+
+                    # get the mesh object from BDT
+                    mesh4plot = BDT.data_tree[axes_item["mesh_name"]]["mesh"]
+
+                    # get the data object from BDT
+                    if axes_item["case_name"] is "mesh_geometry":    # if plot geometry quantity
+                        if axes_item["data_name"] is "mesh":
+                            pass    # plot the mesh itself, to do later
+                        else:
+                           data4plot = BDT.data_tree[axes_item["mesh_name"]][axes_item["data_name"]]["data2D_IyIx"]
+                    else:
+                        data4plot = BDT.data_tree[axes_item["mesh_name"]][axes_item["case_name"]][axes_item["data_name"]]["data2D_IyIx"]
+
+                    # get tangram and region flags from self
+                    tangram4plot = self.plots[self.current_plot]["Colorbar"]["tangram"]
+                    ix_region = axes_item["ix_region"]
+                    iy_region = axes_item["iy_region"]
+
+                    ## call the stainedglass object method to redraw the axes
+                    self.plots[self.current_plot]["AxesList"][axes_item["axes_index"]]["stainedglass"].draw_from_scratch(mesh4plot, data4plot, tangram4plot, ix_region, iy_region)
+                else:
+                    pass    # partial redraw, to do later
+
+            # redraw colorbar if needed
+            if self.plots[self.current_plot]["Colorbar"]["is_changed"] == True :
+                self.plots[self.current_plot]["Colorbar"]["tangram"].draw_colorbar("vertical")
+            else:
+                pass
+        else:
+            pass    # 1D line graph, to do later
+
+        # the reason to use flags to track the changes but not redraw until the last step is I don't want to waste resource redraw something every time a little thing changes. This is more like a notebook style where you type in all the changes and execute them all at the same time.
+
+        # reset the flags to False
+        self.reset_false()
+
+
+################### todo tomorrow ############################################
+
+############################## see how to differentiate different types
+
+    # reset the flag to False after drawing
+    def reset_false(self):
+
+        for axes_item in self.plots[self.current_plot]["AxesList"]:
+            axes_item["changed"]
+
+        self.plots[self.current_plot]["Colorbar"]["tangram"]["is_changed"] = False
+
+
 
 ###############################
 
