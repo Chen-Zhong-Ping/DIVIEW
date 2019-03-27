@@ -448,9 +448,13 @@
 ######### end of data calculator panel ###########
 ##################################################
 
-######################################################################
-######################################################################
+######### end of data screen #####################
+##################################################
+##################################################
 
+######################################################################
+######################################################################
+######################################################################
 
 <PlotScreen>:
     orientation: 'vertical'
@@ -524,18 +528,18 @@
             text: "2d_quad"
 
         CheckBox:
-            id: is_1d_line_type_id
-            group: "plot_type"
-            allow_no_selection: False
-        Label:
-            text: "1d_line"
-
-        CheckBox:
             id: is_2d_tria_type_id
             group: "plot_type"
             allow_no_selection: False
         Label:
             text: "2d_tria"
+
+        CheckBox:
+            id: is_1d_line_type_id
+            group: "plot_type"
+            allow_no_selection: False
+        Label:
+            text: "1d_line"
 
     BoxLayout:
         size_hint_y: 0.5
@@ -707,6 +711,130 @@
             text: "cancel"
             on_release: root.cancel()
 
+<ChangeDisplayRangeDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.2
+        text: "enter x and y range"
+
+    BoxLayout:
+        size_hint_y: 0.3
+        orientation: 'horizontal'
+
+        Label:
+            text: "x_min:"
+        FloatInput:
+            id: x_min_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["axes_x_min"])
+        Label:
+            text: "x_max:"
+        FloatInput:
+            id: x_max_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["axes_x_max"])
+
+    BoxLayout:
+        size_hint_y: 0.3
+        orientation: 'horizontal'
+
+        Label:
+            text: "y_min:"
+        FloatInput:
+            id: y_min_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["axes_y_min"])
+        Label:
+            text: "y_max:"
+        FloatInput:
+            id: y_max_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["axes_y_max"])
+
+    BoxLayout:
+        size_hint_y: 0.2
+        orientation: 'horizontal'
+
+        Button:
+            text: "change"
+            on_release: root.try_load(x_min_id.text, x_max_id.text, y_min_id.text, y_max_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+<ChangeAxesPositionDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.1
+        text: "enter position and size"
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+
+        Label:
+            text: "left:"
+        FloatInput:
+            id: left_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_left"])
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+
+        Label:
+            text: "bottom:"
+        FloatInput:
+            id: bottom_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_bottom"])
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+
+        Label:
+            text: "width:"
+        FloatInput:
+            id: width_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_width"])
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+
+        Label:
+            text: "height:"
+        FloatInput:
+            id: height_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_height"])
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+
+        Label:
+            text: "z order:"
+        TextInput:
+            id: z_pos_id
+            input_filter: 'int'
+            multiline: False
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_z"])
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+
+        Button:
+            text: "change"
+            on_release: root.try_load(left_id.text, bottom_id.text, width_id.text, height_id.text, z_pos_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
 
 <DeleteSubplotDialog>:
     orientation: 'vertical'
@@ -746,7 +874,7 @@
     Button:
         text: root.axes_name
 #        on_release: root.parent.parent.show_deletesubplot_dialog(root.axes_index)
-        on_release: root.parent.parent.show_modifysubplot_dialot("2d_quad", root.axes_index)
+        on_release: root.parent.parent.show_modifysubplot_dialog("2d_quad", root.axes_index)
 
     Label:
         text: "mesh: "+root.mesh_name
@@ -787,201 +915,35 @@
 
 <ModifySubplotDialog_2d_quad>:
     orientation: 'vertical'
-    message: message_id
 
-    Label:
-        id: message_id
-        size_hint_y: 0.1
-        text: "change the settings"
+    Button:
+        text: "change plot content"
+        on_release:
 
-    BoxLayout:
-        size_hint_y: 0.75
-        orientation: 'horizontal'
+    Button:
+        text: "change plot region"
+        on_release:
 
-        BoxLayout:
-            size_hint_x: 0.5
-            orientation: 'vertical'
+    Button:
+        text: "change mesh overlay"
+        on_release:
 
-            BoxLayout:
-                size_hint_y: 0.125
-                orientation: 'horizontal'
+    Button:
+        text: "change display range"
+        on_release: root.change_display_range(root.modify_index)
 
-                Label:
-                    size_hint_x: 0.3
-                    text: "mesh:"
-                Spinner:
-                    id: mesh_spinner_id
-                    sync_height: True
-                    values: list(app.bpt.plotables.keys())
-                    on_text: case_spinner_id.values = list(app.bpt.plotables[self.text].keys())
-                    text: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["mesh_name"]
+    Button:
+        text: "change position and size"
+        on_release: root.change_position(root.modify_index)
 
-            BoxLayout:
-                size_hint_y: 0.125
-                orientation: 'horizontal'
+    Button:
+        text: "delete this subplot"
+        on_release: root.try_delete(root.modify_index)
 
-                Label:
-                    size_hint_x: 0.3
-                    text: "case:"
-                Spinner:
-                    id: case_spinner_id
-                    sync_height: True
-                    values: list(app.bpt.plotables[app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["mesh_name"]].keys())
-                    on_text: data_spinner_id.values = app.bpt.plotables[mesh_spinner_id.text][self.text]
-                    text: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["case_name"]
+    Button:
+        text: "cancel"
+        on_release: root.cancel()
 
-            BoxLayout:
-                size_hint_y: 0.125
-                orientation: 'horizontal'
-
-                Label:
-                    size_hint_x: 0.3
-                    text: "data:"
-                Spinner:
-                    id: data_spinner_id
-                    sync_height: True
-                    values: app.bpt.plotables[app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["mesh_name"]][app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["case_name"]]
-                    text: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["data_name"]
-
-            BoxLayout:
-                size_hint_y: 0.125
-                orientation: 'horizontal'
-
-                Label:
-                    size_hint_x: 0.3
-                    text: "name:"
-                TextInput:
-                    id: axes_name_id
-                    text: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["axes_name"]
-
-            BoxLayout:
-                size_hint_y: 0.125
-                orientation: 'horizontal'
-
-                Label:
-                    size_hint_x: 0.5
-                    text: "poloidal region:"
-                Spinner:
-                    id: ix_region_spinner_id
-                    sync_height: True
-                    values: ("outer_divertor", "inner_divertor", "full")
-                    text: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["ix_region"]
-
-            BoxLayout:
-                size_hint_y: 0.125
-                orientation: 'horizontal'
-
-                Label:
-                    size_hint_x: 0.5
-                    text: "radial region:"
-                Spinner:
-                    id: iy_region_spinner_id
-                    sync_height: True
-                    values: ("SOL", "PFR", "both")
-                    text: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["iy_region"]
-
-
-        BoxLayout:
-            size_hint_x: 0.5
-            orientation: 'vertical'
-
-            BoxLayout:
-                size_hint_y: 0.125
-                orientation: 'horizontal'
-
-                Label:
-                    text: "mesh overlay"
-                CheckBox:
-#                    size_hint_x: 0.3
-                    id: mesh_overlay_checkbox_id
-                    active: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["is_mesh_overlay"]
-
-            BoxLayout:
-                size_hint_y: 0.125
-                orientation: 'horizontal'
-
-                Label:
-                    text: "x_min:"
-                FloatInput:
-                    id: x_min_id
-                    text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["axes_x_min"])
-                Label:
-                    text: "x_max:"
-                FloatInput:
-                    id: x_max_id
-                    text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["axes_x_max"])
-
-            BoxLayout:
-                size_hint_y: 0.125
-                orientation: 'horizontal'
-
-                Label:
-                    text: "y_min:"
-                FloatInput:
-                    id: y_min_id
-                    text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["axes_y_min"])
-                Label:
-                    text: "y_max:"
-                FloatInput:
-                    id: y_max_id
-                    text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["axes_y_max"])
-
-            BoxLayout:
-                size_hint_y: 0.125
-                orientation: 'horizontal'
-
-                Label:
-                    text: "left:"
-                FloatInput:
-                    id: left_id
-                    text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_left"])
-                Label:
-                    text: "bottom:"
-                FloatInput:
-                    id: bottom_id
-                    text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_bottom"])
-
-            BoxLayout:
-                size_hint_y: 0.125
-                orientation: 'horizontal'
-
-                Label:
-                    text: "width:"
-                FloatInput:
-                    id: width_id
-                    text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_width"])
-                Label:
-                    text: "height:"
-                FloatInput:
-                    id: height_id
-                    text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_height"])
-
-            BoxLayout:
-                size_hint_y: 0.125
-                orientation: 'horizontal'
-
-                Label:
-                    text: "z position:"
-                TextInput:
-                    id: z_pos_id
-                    input_filter: 'int'
-                    multiline: False
-                    text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_z"])
-
-    BoxLayout:
-        orientation: 'horizontal'
-        size_hint_y: 0.15
-        Button:
-            text: "cancel"
-            on_release: root.cancel()
-
-        Button:
-            text: "modify subplot"
-            on_release: root.tryload(axes_name_id.text, mesh_spinner_id.text, case_spinner_id.text, data_spinner_id.text, ix_region_spinner_id.text, iy_region_spinner_id.text, mesh_overlay_checkbox_id.active, x_min_id.text, x_max_id.text, y_min_id.text, y_max_id.text, left_id.text, bottom_id.text, width_id.text, height_id.text, z_pos_id.text)
-
-        Button:
-            text: "delete subplot"
-            on_release: root.try_delete(root.modify_index)
 
 ####  # end of 2d_quad special #
 
