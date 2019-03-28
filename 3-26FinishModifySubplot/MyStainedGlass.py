@@ -483,9 +483,34 @@ class AxesListSubPanel(RecycleView):
 
     def show_modifysubplot_dialog(self, plot_type, axes_index):
 
+        # for 2d_quad type:
         if plot_type is "2d_quad":
             self._popup = Popup(title="Modify subplot", size_hint=(0.3, 0.6), pos_hint = {'top': 0.95}, 
-                            content=ModifySubplotDialog_2d_quad(change_display_range = self.show_changedisplayrange_dialog, change_position = self.show_changeaxesposition_dialog, try_delete = self.show_deletesubplot_dialog, cancel = self.dismiss_popup, modify_index = axes_index))
+                            content=ModifySubplotDialog_2d_quad(change_plot_content = self.show_changeplotcontent_dialog, change_plot_region = self.show_changeplotregion2dquad_dialog, change_mesh_overlay = self.show_changemeshoverlay_dialog, change_display_range = self.show_changedisplayrange_dialog, change_position = self.show_changeaxesposition_dialog, try_delete = self.show_deletesubplot_dialog, cancel = self.dismiss_popup, modify_index = axes_index))
+            self._popup.open()
+        elif plot_type is "2d_tria":
+            pass
+        else:
+            pass
+
+    def show_changeplotcontent_dialog(self, axes_index):
+        self.dismiss_popup()
+        self._popup = Popup(title="change what to plot", size_hint=(0.3, 0.4), pos_hint = {'top': 0.95}, 
+                            content=ChangePlotContentDialog(load = self.update_subplot_list, cancel = self.dismiss_popup, modify_index = axes_index))
+        self._popup.open()
+
+    def show_changeplotregion2dquad_dialog(self, axes_index):
+        self.dismiss_popup()
+        self._popup = Popup(title="set plot region", size_hint=(0.3, 0.36), pos_hint = {'top': 0.95}, 
+                            content=ChangePlotRegionDialog_2d_quad(load = self.update_subplot_list, cancel = self.dismiss_popup, modify_index = axes_index))
+        self._popup.open()
+
+    def show_changemeshoverlay_dialog(self, plot_type, axes_index):
+        self.dismiss_popup()
+
+        if plot_type is "2d_quad":
+            self._popup = Popup(title="set mesh frame", size_hint=(0.3, 0.4), pos_hint = {'top': 0.95}, 
+                                content=ChangeMeshOverlayDialog_2d_quad(load = self.update_subplot_list, cancel = self.dismiss_popup, modify_index = axes_index))
             self._popup.open()
         elif plot_type is "2d_tria":
             pass
@@ -501,7 +526,7 @@ class AxesListSubPanel(RecycleView):
 
     def show_changeaxesposition_dialog(self, axes_index):
         self.dismiss_popup()
-        self._popup = Popup(title="change position and size", size_hint=(0.3, 0.5), pos_hint = {'top': 0.95}, 
+        self._popup = Popup(title="change position and size", size_hint=(0.3, 0.55), pos_hint = {'top': 0.95}, 
                             content=ChangeAxesPositionDialog(load = self.update_subplot_list, cancel = self.dismiss_popup, modify_index = axes_index))
         self._popup.open()
 
@@ -536,6 +561,16 @@ class AddSubplotDialog(BoxLayout):    # add an axes to the figure, add an recycl
             pass
     pass
 
+class ChangePlotContentDialog(BoxLayout):    # this may need to be differentiated between 2d_quad and 2d_tira
+    load = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+    modify_index = NumericProperty()
+#    message = ObjectProperty(None)
+
+    def try_load(self, mesh_name, case_name, data_name):
+
+        BPT.change_axes_content(self.modify_index, mesh_name, case_name, data_name)
+        self.load()
 
 class ChangeDisplayRangeDialog(BoxLayout):
     load = ObjectProperty(None)
@@ -556,11 +591,11 @@ class ChangeAxesPositionDialog(BoxLayout):
     modify_index = NumericProperty()
     message = ObjectProperty(None)
 
-    def try_load(self, pos_axes_left, pos_axes_bottom, pos_axes_width, pos_axes_height, pos_axes_z):
-        if "" in {pos_axes_left, pos_axes_bottom, pos_axes_width, pos_axes_height, pos_axes_z}:
-            self.message.text = "must fill all input slots for position and size"
-        else:
-            BPT.change_axes_position(self.modify_index, pos_axes_left, pos_axes_bottom, pos_axes_width, pos_axes_height, pos_axes_z)
+    def try_load(self, axes_name, pos_axes_left, pos_axes_bottom, pos_axes_width, pos_axes_height, pos_axes_z):
+        if "" in {axes_name, pos_axes_left, pos_axes_bottom, pos_axes_width, pos_axes_height, pos_axes_z}:
+            self.message.text = "must fill all input slots"
+        else: #ChangePlotRegion_2d_quad
+            BPT.change_axes_position(self.modify_index, axes_name, pos_axes_left, pos_axes_bottom, pos_axes_width, pos_axes_height, pos_axes_z)
             self.load()
 
 class DeleteSubplotDialog(BoxLayout):
@@ -617,6 +652,31 @@ class ModifySubplotDialog_2d_quad(BoxLayout):    # dialog to modify parameters f
 
 #    load = ObjectProperty(None)
 #    message = ObjectProperty(None)
+
+class ChangePlotRegionDialog_2d_quad(BoxLayout):
+    load = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+    modify_index = NumericProperty()
+#    message = ObjectProperty(None)
+
+    def try_load(self, ix_region, iy_region):
+        BPT.change_plot_region(self.modify_index, ix_region, iy_region)
+        self.load()
+
+class ChangeMeshOverlayDialog_2d_quad(BoxLayout):
+    load = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+    modify_index = NumericProperty()
+    message = ObjectProperty(None)
+
+    def try_load(self, linewidth, color_r, color_g, color_b, color_a, is_mesh_overlay):
+        if "" in {linewidth, color_r, color_g, color_b, color_a}:
+            self.message.text = "must fill all input slots"
+        elif 0 <= float(color_r) <= 1 and 0 <= float(color_g) <= 1 and 0 <= float(color_b) <= 1 and 0 <= float(color_a) <= 1 :
+            BPT.change_mesh_frame_settings(self.modify_index, float(linewidth), (float(color_r), float(color_g), float(color_b), float(color_a)), is_mesh_overlay)
+            self.load()
+        else:
+            self.message.text = "color code must be in [0, 1]"
 
 
 ####  # end of 2d_quad special #
@@ -953,7 +1013,27 @@ class BackendPlotTracker:
 
         self.plotables = {}    # providing list of data (names) can be ploted in the add subplot dialog
 
-#### rule of separation: let the plot_screen keep track of the GUI widgets as its children, while BPT tracks the numbers and strings for plotting
+    #### adding the list of plotables whenever a new mesh/case/data is added through the data screen
+    #### have not decided whether this should be separate by plot_type, do not see necessity
+
+    def add_plotable_mesh(self, mesh_name):
+        self.plotables[mesh_name] = {}        # use same mesh_name to link between BPT.plotables and BDT.data_tree
+        self.plotables[mesh_name]["mesh_geometry"] = []    # a list of plotable geometric quantities independent of simulation. "mesh_geometry" same level as case names.
+        self.plotables[mesh_name]["mesh_geometry"].append("mesh")
+
+    def add_plotable_geometry_data(self, data_name):
+        self.plotables[BDT.current_mesh]["mesh_geometry"].append(data_name)
+
+    def add_plotable_case(self, case_name):
+        self.plotables[BDT.current_mesh][case_name] = []    # same level as "mesh_geometry". a list of plotable simulation data
+
+    def add_plotable_simulation_data(self, data_name):
+        self.plotables[BDT.current_mesh][BDT.current_case].append(data_name)
+
+    ####
+
+
+#### rule of separation: let the plot_screen keep track of the GUI widgets as its children, while BPT tracks the numbers and strings for plot setings
     #### use numbers as keys in the dictionary to track figs and axes, since the names can change.
 
     def add_plot(self, plot_type):
@@ -987,6 +1067,8 @@ class BackendPlotTracker:
 
     ######## Related to the AxesListSubpanel ########
 
+    #### add a subplot
+
     def add_subplot(self, axes_name, mesh_name, case_name, data_name):
 
         ## use input values for the following, universal for all types of plots
@@ -1017,6 +1099,9 @@ class BackendPlotTracker:
             self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_width"] = 0.8
             self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_height"] = 1.0
             self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_z"] = 0
+
+            self.plots[self.current_plot]["AxesList_settings"][-1]["linewidth"] = 0.1
+            self.plots[self.current_plot]["AxesList_settings"][-1]["edgecolor"] = (0, 0, 0, 1)
         else:
             pass
 
@@ -1036,25 +1121,19 @@ class BackendPlotTracker:
 
             # dictionary keeps track of what has been changed to determine how it will be redrawn
             # here only "coords": True matters, indicate a complete redrawn for the first time.
-            self.plots[self.current_plot]["AxesList"][-1]["changed"] = {"coords": True, "color_formula": False, "frame": False, "axes_position": False, "axes_plot_range": False}
+            self.plots[self.current_plot]["AxesList"][-1]["changed"] = {"coords": True, "frame": False, "axes_position": False, "axes_plot_range": False}
 
             # create a stainedglass and append it to the list of stainedglass objects  "2d_quad"
             self.plots[self.current_plot]["AxesList"][-1]["stainedglass"] = StainedGlass2DQuad(self.plots[self.current_plot]["Figure"].add_axes((0.05, 0.05, 0.8, 1)))
         else:
             pass
 
+    #### modify a subplot, various types
 
-    def modify_subplot(self, modify_index, plot_type, axes_name, mesh_name, case_name, data_name, ix_region, iy_region, is_mesh_overlay):
-
-        self.plots[self.current_plot]["AxesList_settings"][modify_index]["axes_name"] = axes_name
-        self.plots[self.current_plot]["AxesList_settings"][modify_index]["mesh_name"] = mesh_name
-        self.plots[self.current_plot]["AxesList_settings"][modify_index]["case_name"] = case_name
-        self.plots[self.current_plot]["AxesList_settings"][modify_index]["data_name"] = data_name
+    def modify_subplot(self, modify_index, plot_type, axes_name, is_mesh_overlay):
 
         if plot_type is "2d_quad":
-            self.plots[self.current_plot]["AxesList_settings"][modify_index]["ix_region"] = ix_region        # poloidal cell index range
-            self.plots[self.current_plot]["AxesList_settings"][modify_index]["iy_region"] = iy_region        # radial cell index range
-            self.plots[self.current_plot]["AxesList_settings"][modify_index]["is_mesh_overlay"] = is_mesh_overlay
+            pass
         else:
             pass
 
@@ -1062,6 +1141,35 @@ class BackendPlotTracker:
             pass
         else:
             pass
+
+    def change_axes_content(self, modify_index, mesh_name, case_name, data_name):
+
+        # change the setting records
+        self.plots[self.current_plot]["AxesList_settings"][modify_index]["mesh_name"] = mesh_name
+        self.plots[self.current_plot]["AxesList_settings"][modify_index]["case_name"] = case_name
+        self.plots[self.current_plot]["AxesList_settings"][modify_index]["data_name"] = data_name
+
+        # will keep axes as is until the last minute to change the display range of the matplotlib axes, here simply flag it
+        self.plots[self.current_plot]["AxesList"][modify_index]["changed"]["coords"] = True    # flag a complete redraw
+
+    def change_plot_region(self, modify_index, ix_region, iy_region):
+
+        # change the setting records
+        self.plots[self.current_plot]["AxesList_settings"][modify_index]["ix_region"] = ix_region        # poloidal cell index range
+        self.plots[self.current_plot]["AxesList_settings"][modify_index]["iy_region"] = iy_region        # radial cell index range
+
+        # will keep axes as is until the last minute to change the display range of the matplotlib axes, here simply flag it
+        self.plots[self.current_plot]["AxesList"][modify_index]["changed"]["coords"] = True    # flag a complete redraw
+
+    def change_mesh_frame_settings(self, modify_index, linewidth, edgecolor, is_mesh_overlay):
+
+        # change the setting records
+        self.plots[self.current_plot]["AxesList_settings"][modify_index]["linewidth"] = linewidth
+        self.plots[self.current_plot]["AxesList_settings"][modify_index]["edgecolor"] = edgecolor
+        self.plots[self.current_plot]["AxesList_settings"][modify_index]["is_mesh_overlay"] = is_mesh_overlay
+
+        # will keep axes as is until the last minute to change the display range of the matplotlib axes, here simply flag it
+        self.plots[self.current_plot]["AxesList"][modify_index]["changed"]["frame"] = True    # flag a partial redraw changing frame settings
 
     def change_axes_display_range(self, modify_index, axes_x_min, axes_x_max, axes_y_min, axes_y_max):
 
@@ -1075,9 +1183,10 @@ class BackendPlotTracker:
         self.plots[self.current_plot]["AxesList"][modify_index]["changed"]["axes_plot_range"] = True
         
 
-    def change_axes_position(self, modify_index, pos_axes_left, pos_axes_bottom, pos_axes_width, pos_axes_height, pos_axes_z):
+    def change_axes_position(self, modify_index, axes_name, pos_axes_left, pos_axes_bottom, pos_axes_width, pos_axes_height, pos_axes_z):
 
         # change the setting records
+        self.plots[self.current_plot]["AxesList_settings"][modify_index]["axes_name"] = axes_name
         self.plots[self.current_plot]["AxesList_settings"][modify_index]["pos_axes_left"] = float(pos_axes_left)
         self.plots[self.current_plot]["AxesList_settings"][modify_index]["pos_axes_bottom"] = float(pos_axes_bottom)
         self.plots[self.current_plot]["AxesList_settings"][modify_index]["pos_axes_width"] = float(pos_axes_width)
@@ -1105,24 +1214,6 @@ class BackendPlotTracker:
             # delete the axes from the list
             del self.plots[self.current_plot]["AxesList"][axes_index]
 
-    #### adding the list of plotables whenever a new mesh/case/data is added through the data screen
-    #### have not decided whether this should be separate by plot_type, do not see necessity
-
-    def add_plotable_mesh(self, mesh_name):
-        self.plotables[mesh_name] = {}        # use same mesh_name to link between BPT.plotables and BDT.data_tree
-        self.plotables[mesh_name]["mesh_geometry"] = []    # a list of plotable geometric quantities independent of simulation. "mesh_geometry" same level as case names.
-        self.plotables[mesh_name]["mesh_geometry"].append("mesh")
-
-    def add_plotable_geometry_data(self, data_name):
-        self.plotables[BDT.current_mesh]["mesh_geometry"].append(data_name)
-
-    def add_plotable_case(self, case_name):
-        self.plotables[BDT.current_mesh][case_name] = []    # same level as "mesh_geometry". a list of plotable simulation data
-
-    def add_plotable_simulation_data(self, data_name):
-        self.plotables[BDT.current_mesh][BDT.current_case].append(data_name)
-
-    ####
 
     ######## related to ColorBar panel ########
 
@@ -1182,50 +1273,65 @@ class BackendPlotTracker:
                 # redraw each stainedglass in the list if needed
                 for axes_item in self.plots[self.current_plot]["AxesList_settings"]:
 
+                    ## use temporary variables to make source code more easily understood, less efficient obviously
+
                     what_changed = self.plots[self.current_plot]["AxesList"][axes_item["axes_index"]]["changed"]
                     stainedglass = self.plots[self.current_plot]["AxesList"][axes_item["axes_index"]]["stainedglass"]
+
+                    # get the mesh object from BDT
+                    mesh4plot = BDT.data_tree[axes_item["mesh_name"]]["mesh"]
+
+                    # get the data object from BDT
+                    if axes_item["case_name"] is "mesh_geometry":    # if plot geometry quantity
+                        if axes_item["data_name"] is "mesh":
+                            pass    # plot the mesh itself, to do later
+                        else:
+                           data4plot = BDT.data_tree[axes_item["mesh_name"]][axes_item["data_name"]]["data2D_IyIx"]
+                    else:    # otherwise plot physical quantity
+                        data4plot = BDT.data_tree[axes_item["mesh_name"]][axes_item["case_name"]][axes_item["data_name"]]["data2D_IyIx"]
+
+                    # get tangram and region flags from self
+                    tangram4plot = self.plots[self.current_plot]["Colorbar"]["tangram"]
+                    ix_region = axes_item["ix_region"]
+                    iy_region = axes_item["iy_region"]
+
+                    # get frame settings from self
+                    linewidth = axes_item["linewidth"]
+                    edgecolor = axes_item["edgecolor"]
 
                     # if the whole stainedglass has to be redrawn
                     if what_changed["coords"] == True:
 
-                        ## use temporary variables to make source code more easily understood
-
-                        # get the mesh object from BDT
-                        mesh4plot = BDT.data_tree[axes_item["mesh_name"]]["mesh"]
-
-                        # get the data object from BDT
-                        if axes_item["case_name"] is "mesh_geometry":    # if plot geometry quantity
-                            if axes_item["data_name"] is "mesh":
-                                pass    # plot the mesh itself, to do later
-                            else:
-                               data4plot = BDT.data_tree[axes_item["mesh_name"]][axes_item["data_name"]]["data2D_IyIx"]
-                        else:    # otherwise plot physical quantity
-                            data4plot = BDT.data_tree[axes_item["mesh_name"]][axes_item["case_name"]][axes_item["data_name"]]["data2D_IyIx"]
-
-                        # get tangram and region flags from self
-                        tangram4plot = self.plots[self.current_plot]["Colorbar"]["tangram"]
-                        ix_region = axes_item["ix_region"]
-                        iy_region = axes_item["iy_region"]
-
                         ## call the stainedglass object method to redraw the axes
-                        stainedglass.draw_from_scratch(mesh4plot, data4plot, tangram4plot, ix_region, iy_region)
+                        stainedglass.draw_from_scratch(mesh4plot, data4plot, tangram4plot, ix_region, iy_region, linewidth, edgecolor)
 
+                    else:    # partial redraw
+
+                        # if color code changes
+                        if self.plots[self.current_plot]["Colorbar"]["is_changed"] == True :
+                            stainedglass.paint_glass(mesh4plot, data4plot, tangram4plot, ix_region, iy_region)
+
+                        # if mesh line width / edge color changes
+                        if what_changed["frame"] == True:
+                            stainedglass.set_frame(linewidth, edgecolor)
+                        else:
+                            pass
+
+
+                    # if axes display range changes
+                    if what_changed["axes_plot_range"] == True:
+                        stainedglass.axes.set_xbound(axes_item["axes_x_min"], axes_item["axes_x_max"])
+                        stainedglass.axes.set_ybound(axes_item["axes_y_min"], axes_item["axes_y_max"])
                     else:
-                        # if the display range changes
-                        if what_changed["axes_plot_range"] == True:
-                            stainedglass.axes.set_xbound(axes_item["axes_x_min"], axes_item["axes_x_max"])
-                            stainedglass.axes.set_ybound(axes_item["axes_y_min"], axes_item["axes_y_max"])
-                        else:
-                            pass
+                        pass
 
-                        # if the position changes
-                        if what_changed["axes_position"] == True:
-                            stainedglass.axes.set_position((axes_item["pos_axes_left"], axes_item["pos_axes_bottom"], axes_item["pos_axes_width"], axes_item["pos_axes_height"]))
-                            print("position changed")
-                            stainedglass.axes.set_zorder(axes_item["pos_axes_z"])
-                        else:
-                            pass
-                        pass    # partial redraw
+                    # if axes position changes
+                    if what_changed["axes_position"] == True:
+                        stainedglass.axes.set_position((axes_item["pos_axes_left"], axes_item["pos_axes_bottom"], axes_item["pos_axes_width"], axes_item["pos_axes_height"]))
+                        print("position changed")
+                        stainedglass.axes.set_zorder(axes_item["pos_axes_z"])
+                    else:
+                        pass
 
                 # redraw colorbar if needed
                 if self.plots[self.current_plot]["Colorbar"]["is_changed"] == True :
@@ -1252,7 +1358,6 @@ class BackendPlotTracker:
 
             for axes_item in self.plots[self.current_plot]["AxesList"]:
                 axes_item["changed"]["coords"] = False
-                axes_item["changed"]["color_formula"] = False
                 axes_item["changed"]["frame"] = False
                 axes_item["changed"]["axes_position"] = False
                 axes_item["changed"]["axes_plot_range"] = False
@@ -1265,8 +1370,8 @@ class BackendPlotTracker:
 
 
 ###################### to do tomorrow ###############################
-# color bar changed more specific split
-# finish mesh/case/data/name, region, and mesh frame these 3 types of changes to subplot, at least the dialogs.
+
+# plot other "region" definitions.
 
 
 
