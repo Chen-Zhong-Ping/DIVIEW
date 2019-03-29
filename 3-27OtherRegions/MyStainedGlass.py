@@ -53,7 +53,7 @@ class MeshListPanel(TreeView):
         self._popup.dismiss()
 
     def show_loadmeshdialog(self):
-        self._popup = Popup(title="add a mesh", size_hint=(0.9, 0.9), 
+        self._popup = Popup(title="add a mesh", size_hint=(0.4, 0.6), 
                             content=LoadMeshDialog(load=self.add_mesh, cancel=self.dismiss_popup))
         self._popup.open()
 
@@ -75,7 +75,7 @@ class MeshListPanel(TreeView):
 
     def show_load_geomdata_dialog(self, mesh_name):
         BDT.set_current_mesh(mesh_name)
-        self._popup = Popup(title="add geometry information", size_hint=(0.8, 0.8), 
+        self._popup = Popup(title="add geometry information", size_hint=(0.4, 0.6), 
                             content=LoadGeomDataDialog(load=self.add_geom_info, cancel=self.dismiss_popup))
         self._popup.open()
 
@@ -155,7 +155,7 @@ class CaseSpinner(Spinner):
         self.values = self.mesh_cases[BDT.current_mesh]
 
     def show_addcasedialog(self):
-        self._popup = Popup(title="add a simulation case", size_hint=(0.8, 0.8), 
+        self._popup = Popup(title="add a simulation case", size_hint=(0.35, 0.35), 
                             content=AddCaseDialog(load=self.add_case, cancel=self.dismiss_popup))
         self._popup.open()
 
@@ -205,8 +205,12 @@ class DataListPanel(RecycleView):
         self.data = self.SOLPSdata_sets[BDT.current_case]
 
     def show_adddatadialog(self):
-        self._popup = Popup(title="add simulation data from this case", size_hint=(0.9, 0.9), 
+        if len(self.SOLPSdata_sets) > 1:
+            self._popup = Popup(title="add simulation data from this case", size_hint=(0.4, 0.6), 
                             content=AddSOLPSDataDialog(load=self.add_data, cancel=self.dismiss_popup))
+        else:
+            self._popup = Popup(title="warning", size_hint=(0.25, 0.25), 
+                            content=WarningNoCaseDialog(cancel=self.dismiss_popup))
         self._popup.open()
 
     def add_data(self, data_name, data_unit, is_popup_open):
@@ -241,6 +245,8 @@ class AddSOLPSDataDialog(BoxLayout):
             BPT.add_plotable_simulation_data(data_name)
             self.load(data_name, data_unit, True)
 
+class WarningNoCaseDialog(BoxLayout):
+    cancel = ObjectProperty(None)
 ####################################################################
 
 
@@ -1305,11 +1311,14 @@ class BackendPlotTracker:
                         ## call the stainedglass object method to redraw the axes
                         stainedglass.draw_from_scratch(mesh4plot, data4plot, tangram4plot, ix_region, iy_region, linewidth, edgecolor)
 
+                        # since axes.clear() is called in draw_from_scratch, the display range is auto set to (0, 1; 0, 1), flag it correct
+                        what_changed["axes_plot_range"] = True
+
                     else:    # partial redraw
 
                         # if color code changes
                         if self.plots[self.current_plot]["Colorbar"]["is_changed"] == True :
-                            stainedglass.paint_glass(mesh4plot, data4plot, tangram4plot, ix_region, iy_region)
+                            stainedglass.paint_glass(mesh4plot, data4plot, tangram4plot, iy_region)
 
                         # if mesh line width / edge color changes
                         if what_changed["frame"] == True:
@@ -1328,7 +1337,7 @@ class BackendPlotTracker:
                     # if axes position changes
                     if what_changed["axes_position"] == True:
                         stainedglass.axes.set_position((axes_item["pos_axes_left"], axes_item["pos_axes_bottom"], axes_item["pos_axes_width"], axes_item["pos_axes_height"]))
-                        print("position changed")
+#                        print("position changed")
                         stainedglass.axes.set_zorder(axes_item["pos_axes_z"])
                     else:
                         pass
@@ -1371,7 +1380,6 @@ class BackendPlotTracker:
 
 ###################### to do tomorrow ###############################
 
-# plot other "region" definitions.
 
 
 

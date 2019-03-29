@@ -342,6 +342,15 @@
             text: "Cancel"
             on_release: root.cancel()
 
+<WarningNoCaseDialog>:
+    orientation: 'vertical'
+
+    Label:
+        text: "create a case first!"
+
+    Button:
+        text: "got it"
+        on_release: root.cancel()
 
 #### end of simulation case/data panel ####
 ###########################################
@@ -1034,7 +1043,7 @@
         Spinner:
             id: ix_region_spinner_id
             sync_height: True
-            values: ("outer_divertor", "inner_divertor", "full")
+            values: ("outer_divertor", "inner_divertor", "core", "full")
             text: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["ix_region"]
 
     BoxLayout:
