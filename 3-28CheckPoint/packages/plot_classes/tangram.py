@@ -67,9 +67,9 @@ class Tangram:
 
         if orientation is "vertical":
             bin_height = 0.99 / len(self.color)
-            barverts = tuple(((0, i*bin_height+0.005), (0.1, i*bin_height+0.005), (0.1, (i+1)*bin_height+0.005), (0, (i+1)*bin_height+0.005)) for i in range(len(self.color)))
+            barverts = tuple(((0.89, i*bin_height+0.005), (0.99, i*bin_height+0.005), (0.99, (i+1)*bin_height+0.005), (0.89, (i+1)*bin_height+0.005)) for i in range(len(self.color)))
             for i in range(len(self.bin)):
-                self.axes.text(0.11, (i+1)*bin_height - 0.01, str(self.bin[i]))
+                self.axes.text(1.00, (i+1)*bin_height - 0.01, str(self.bin[i]))
         else:
             bin_width = 0.99 / len(self.color)
             barverts = tuple(((i*bin_width+0.005, 0.005), (i*bin_width+0.005, 0.105), ((i+1)*bin_width+0.005, 0.105), ((i+1)*bin_width+0.005, 0.005)) for i in range(len(self.color)))

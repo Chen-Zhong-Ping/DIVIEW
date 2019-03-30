@@ -20,6 +20,7 @@
     case_spinner: case_spinner_id
     datalist_panel: datalist_panel_id
     add_case_button: add_case_button_id
+    case_description: case_description_id
 
     BoxLayout:
         orientation: 'vertical'
@@ -68,7 +69,8 @@
             orientation: 'horizontal'
 
             Label:
-                text:
+                id: case_description_id
+                text: "case description"
 
         DataListPanel:
             id: datalist_panel_id
@@ -240,7 +242,7 @@
 ########################################
 ###### simulation case/data panel ######
 
-####### run case spinner #########
+####### simulation case spinner ########
 
 <CaseSpinner>:
     size_hint_x: 0.6
@@ -259,7 +261,7 @@
         text: "enter a name and some description of the case"
 
     BoxLayout:
-        size_hint_y: 0.2
+        size_hint_y: 0.25
         orientation: 'horizontal'
         Label:
             text: "case name"
@@ -268,6 +270,7 @@
             multiline: False
 
     BoxLayout:
+        size_hint_y: 0.4
         orientation: 'horizontal'
         Label:
             text: "description"
@@ -342,11 +345,13 @@
             text: "Cancel"
             on_release: root.cancel()
 
-<WarningNoCaseDialog>:
+<WarningCantAddDialog>:
     orientation: 'vertical'
+#    message: message_id
 
     Label:
-        text: "create a case first!"
+        id: message_id
+        text: root.message
 
     Button:
         text: "got it"
@@ -486,6 +491,7 @@
 
         Button:
             text: "save this plot"
+            on_release: plot_tabs_binder_id.show_saveplot_dialog()
 
         Button:
             text: "to data screen >"
@@ -502,6 +508,50 @@
 
 <PlotTabsBinder>:
     do_default_tab: False
+
+<SavePlotDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        size_hint_y: 0.1
+        text: "enter file name and choose a format"
+        id: message_id
+
+    BoxLayout:
+        size_hint_y: 0.25
+        orientation: 'horizontal'
+
+        Label:
+            text: "name the file:"
+        TextInput:
+            id: file_name_id
+            multiline: False
+
+    BoxLayout:
+        size_hint_y: 0.25
+        orientation: 'horizontal'
+
+        Label:
+            text: "file format:"
+        Spinner:
+            id: file_format_id
+            sync_height: True
+            values: ("svg", "eps")    # "png" is not supported at the moment
+            text: "svg"
+
+    BoxLayout:
+        size_hint_y: 0.4
+        orientation: 'horizontal'
+
+        Button:
+            text: "save plot"
+            on_release: root.try_save(file_name_id.text, file_format_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
 
 <AddTabDialog>:
     orientation: 'vertical'
@@ -520,6 +570,7 @@
             text: "name the plot:"
         TextInput:
             id: plot_name_id
+            multiline: False
 
     BoxLayout:
         size_hint_y: 0.2

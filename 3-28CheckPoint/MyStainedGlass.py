@@ -155,11 +155,15 @@ class CaseSpinner(Spinner):
         self.values = self.mesh_cases[BDT.current_mesh]
 
     def show_addcasedialog(self):
-        self._popup = Popup(title="add a simulation case", size_hint=(0.35, 0.35), 
+        if len(self.mesh_cases) > 0:
+            self._popup = Popup(title="add a simulation case", size_hint=(0.35, 0.4), 
                             content=AddCaseDialog(load=self.add_case, cancel=self.dismiss_popup))
+        else:
+            self._popup = Popup(title="warning no mesh", size_hint=(0.25, 0.25), 
+                            content=WarningCantAddDialog(cancel=self.dismiss_popup, message="import a mesh first!"))
         self._popup.open()
 
-    def add_case(self, case_name, description):             # this method adds a new case in the current case set (mesh)
+    def add_case(self, case_name):             # this method adds a new case in the current case set (mesh)
         self.mesh_cases[BDT.current_mesh].append(case_name)         # append a case_name (str) to the current/outstanding case set (mesh)
 
         GUI.root.data_screen.datalist_panel.add_data_set(case_name)
@@ -181,12 +185,12 @@ class AddCaseDialog(BoxLayout):
     message = ObjectProperty(None)
 
     def tryload(self, case_name, description):
-        if case_name is "" :
-            self.message.text = "MUST enter a case name!"
+        if "" in {case_name, description} :
+            self.message.text = "MUST enter a case name/description!"
         else:
-            BDT.add_case(case_name)
+            BDT.add_case(case_name, description)
             BPT.add_plotable_case(case_name)        # add a case to the list of plotables
-            self.load(case_name, description)
+            self.load(case_name)
 
 ####
 
@@ -209,8 +213,8 @@ class DataListPanel(RecycleView):
             self._popup = Popup(title="add simulation data from this case", size_hint=(0.4, 0.6), 
                             content=AddSOLPSDataDialog(load=self.add_data, cancel=self.dismiss_popup))
         else:
-            self._popup = Popup(title="warning", size_hint=(0.25, 0.25), 
-                            content=WarningNoCaseDialog(cancel=self.dismiss_popup))
+            self._popup = Popup(title="warning no case", size_hint=(0.25, 0.25), 
+                            content=WarningCantAddDialog(cancel=self.dismiss_popup, message="create a case first!"))
         self._popup.open()
 
     def add_data(self, data_name, data_unit, is_popup_open):
@@ -245,8 +249,10 @@ class AddSOLPSDataDialog(BoxLayout):
             BPT.add_plotable_simulation_data(data_name)
             self.load(data_name, data_unit, True)
 
-class WarningNoCaseDialog(BoxLayout):
+class WarningCantAddDialog(BoxLayout):
     cancel = ObjectProperty(None)
+    message = StringProperty()
+
 ####################################################################
 
 
@@ -291,6 +297,7 @@ class DataScreen(Screen):
     case_spinner = ObjectProperty(None)
     datalist_panel = ObjectProperty(None)
     add_case_button = ObjectProperty(None)
+    case_description = ObjectProperty(None)
 
 ####################################################################
 ####################################################################
@@ -344,6 +351,26 @@ class PlotTabsBinder(TabbedPanel):
         else:
             pass
 
+    def show_saveplot_dialog(self):
+
+        if bool(self.tabs) :    # True if nonempty, False if empty # Empty dictionaries evaluate to False in Python
+            self._popup = Popup(title="save plot", size_hint=(0.3, 0.35), 
+                            content=SavePlotDialog(cancel=self.dismiss_popup))
+            self._popup.open()
+        else:
+            pass
+    pass
+
+class SavePlotDialog(BoxLayout):
+    cancel = ObjectProperty(None)        # these will be assigned with the proper function upon instantiation
+    message = ObjectProperty(None)
+
+    def try_save(self, file_name, file_format):
+        if file_name is "" :
+            self.message.text = "Enter a file name!"        # warning message
+        else:
+            BPT.save_current_plot(file_name, file_format)
+            self.cancel()
     pass
 
 class AddTabDialog(BoxLayout):
@@ -907,7 +934,7 @@ class FigDisplayPanel(BoxLayout):
         BPT.draw_current_plot()
 
         self.fig_canvas.draw()
-
+1
     pass
 
 ####################################################################
@@ -959,6 +986,7 @@ class BackendDataTracker:
     def set_current_case(self, case_name):
         self.current_case = case_name
         GUI.root.data_screen.datalist_panel.sync_current_case()
+        GUI.root.data_screen.case_description.text = self.data_tree[self.current_mesh][self.current_case]["case_description"]
 
     def add_mesh(self, mesh_name, mesh_file):
         self.data_tree[mesh_name] = {}        # add a new branch indexed by the mesh name
@@ -973,9 +1001,10 @@ class BackendDataTracker:
         self.data_tree[self.current_mesh][data_name]["data_file"] = data_file
         self.data_tree[self.current_mesh]["geom_var_ref"][data_name] = self.data_tree[self.current_mesh][data_name]["data2D_IyIx"]  # update refdict for calculator
 
-    def add_case(self, case_name):
+    def add_case(self, case_name, description):
         self.data_tree[self.current_mesh][case_name] = {}        # add a new case branch indexed by the case name under the mesh name
         self.data_tree[self.current_mesh][case_name]["simu_var_ref"] = {}    # dictionary for simulation variable reference used in calculator
+        self.data_tree[self.current_mesh][case_name]["case_description"] = description
 
     def add_simulation_data(self, data_name, data_unit, data_file):
         self.data_tree[self.current_mesh][self.current_case][data_name] = {}        # add a simulation data under the case under mesh branch
@@ -1056,9 +1085,9 @@ class BackendPlotTracker:
 
         if plot_type in {"2d_quad", "2d_tria"}:
             self.plots[self.count]["Colorbar"] = {} # track everything related to the colorbar
-            self.plots[self.count]["Colorbar"]["tangram"] = Tangram(self.plots[self.count]["Figure"].add_axes((0.85, 0.05, 0.3, 0.9)))    # instantiate a color code mapping, add an colorbar axes to the figure and assign it to the class instance variable (see tangram.py)
+            self.plots[self.count]["Colorbar"]["tangram"] = Tangram(self.plots[self.count]["Figure"].add_axes((0.45, 0.05, 0.3, 0.9)))    # instantiate a color code mapping, add an colorbar axes to the figure and assign it to the class instance variable (see tangram.py)
             self.plots[self.count]["Colorbar"]["RecycleViewData"] = [{"bin_index": 0, "bin_value_str": "", "bin_color": (0, 0, 0, 1)}]    # ColorCodeSubpanel(RecycleView) data
-            self.plots[self.count]["Colorbar"]["Position_on_Figure"] = {"left": 0.85, "bottom": 0.05, "width": 0.3, "height": 0.9, "z": 1, "is_show": True}
+            self.plots[self.count]["Colorbar"]["Position_on_Figure"] = {"left": 0.45, "bottom": 0.05, "width": 0.3, "height": 0.9, "z": 1, "is_show": True}
             self.plots[self.count]["Colorbar"]["is_changed"] = False
         else:
             pass
@@ -1069,6 +1098,10 @@ class BackendPlotTracker:
     def set_current_plot(self, index):
         self.current_plot = index
 #        print("index: "+str(self.current_plot))
+
+
+    def save_current_plot(self, file_name, file_format):
+        self.plots[self.current_plot]["Figure"].savefig(file_name+"."+file_format, format=file_format, bbox_inches='tight')
 
 
     ######## Related to the AxesListSubpanel ########
@@ -1103,7 +1136,7 @@ class BackendPlotTracker:
             self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_left"] = 0.05                # position of axes on canvas
             self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_bottom"] = 0.05
             self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_width"] = 0.8
-            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_height"] = 1.0
+            self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_height"] = 0.92
             self.plots[self.current_plot]["AxesList_settings"][-1]["pos_axes_z"] = 0
 
             self.plots[self.current_plot]["AxesList_settings"][-1]["linewidth"] = 0.1
