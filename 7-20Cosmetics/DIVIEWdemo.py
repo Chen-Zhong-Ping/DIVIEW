@@ -1,5 +1,5 @@
 
-# import kivy modules for GUI
+## import kivy modules for GUI
 
 from kivy.app import App
 
@@ -7,15 +7,17 @@ from kivy.core.window import Window
 
 from kivy.uix.screenmanager import ScreenManager, Screen
 
+from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
+
 from kivy.uix.treeview import TreeView, TreeViewNode
 from kivy.uix.recycleview import RecycleView
-
-from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
 from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
+from kivy.uix.button import Button
+from kivy.uix.label import Label
 
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
@@ -23,9 +25,10 @@ from kivy.properties import BooleanProperty
 from kivy.properties import NumericProperty
 from kivy.properties import ListProperty
 
+# for matplotlib figure rendering
 from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 
-# import custom modules
+## import custom modules
 
 from packages.data_classes.data2D import Data2D
 from packages.data_classes.mesh import Mesh
@@ -33,12 +36,29 @@ from packages.data_classes.mesh import Mesh
 from packages.plot_classes.tangram import Tangram
 from packages.plot_classes.stainedglass import StainedGlass2DQuad
 
-# import standard modules
+## import standard modules
 
 import os.path
 import numpy
 
 from matplotlib import pyplot
+
+####################################################################
+####################################################################
+
+class FrontEndGUI(ScreenManager):
+    data_screen = ObjectProperty(None)
+    plot_screen = ObjectProperty(None)
+    pass
+
+class PrototypeApp(App):
+    title = "DIVIEW prototype"
+#    bdt = ObjectProperty(None)    # do I need this line ???????????????????????????
+    def build(self):
+        self.bdt = BDT            # for reference to the BDT from inside .kv file
+        self.bpt = BPT            # for reference to the BPT from inside .kv file
+        return FrontEndGUI()
+
 
 ####################################################################
 ################## panel for a list of mesh ########################
@@ -152,7 +172,10 @@ class CaseSpinner(Spinner):
         self.mesh_cases[mesh_name] = []    # initiate the case set to empty list, this list is the "values" of the spinner.
 
     def sync_current_mesh(self):
-        self.values = self.mesh_cases[BDT.current_mesh]
+        if self.mesh_cases[BDT.current_mesh]:
+            self.values = self.mesh_cases[BDT.current_mesh]
+        else:
+            self.values = ["select a case"]
 
     def show_addcasedialog(self):
         if len(self.mesh_cases) > 0:
@@ -200,13 +223,13 @@ class DataListPanel(RecycleView):
 
     def __init__(self, **kwargs):
         super(DataListPanel, self).__init__(**kwargs)
-        self.SOLPSdata_sets = {"": []}             # key is case name, value is option for "data" of RecycleView. When a new mesh is added, spinner text will change to "", so need to have a [] as recycleview data otherwise error.
+        self.SOLPSdata_sets = {"select a case": []}             # key is case name, value is option for "data" of RecycleView. When a new mesh is added, spinner text will change to "select a case", so need to have a [] as default recycleview data otherwise error.
 
     def add_data_set(self, case_name):
         self.SOLPSdata_sets[case_name] = []
 
-    def sync_current_case(self):
-        self.data = self.SOLPSdata_sets[BDT.current_case]
+    def sync_current_case(self, case_name):
+        self.data = self.SOLPSdata_sets[case_name]
 
     def show_adddatadialog(self):
         if len(self.SOLPSdata_sets) > 1:
@@ -268,7 +291,7 @@ class Calculator(BoxLayout):
 
     def clear_inputs(self):
         self.cal_var_name.text = ""
-        self.cal_var_formula.text = ""
+        self.cal_var_unit.text = ""
         self.cal_var_formula.text = ""
         self.type_indicator.is_geomesh_type.trigger_action(duration=0.1)        # have to use this to trigger a button action event
 #        self.type_indicator.is_geomesh_type.active = True        # since setting it to True will not set the other one to False. kivy bug.
@@ -399,7 +422,7 @@ class PlotTab(TabbedPanelItem):
         else:
             pass    # will add 1d_line type later
 
-        # setp2: set a first look of plot_desk after after initiallization
+        # step2: set a first look of plot_desk after after initiallization
         # KiVyTrick: set property's first appearence after initiallization
         self.plot_desk.figaxes_panel.fig_name_button.text = plot_name    # text of the fig_name_button, first appearence have to do it here
         self.plot_desk.figaxes_panel.axes_list_subpanel.set_viewclass(plot_type)    # choose a viewclass for the recycleview
@@ -934,7 +957,7 @@ class FigDisplayPanel(BoxLayout):
         BPT.draw_current_plot()
 
         self.fig_canvas.draw()
-1
+
     pass
 
 ####################################################################
@@ -944,30 +967,25 @@ class FigDisplayPanel(BoxLayout):
 class FloatInput(TextInput):
     pass
 
+class ButtonFont18(Button):
+    pass
+
+class ButtonFont17(Button):
+    pass
+
+class ButtonFont16(Button):
+    pass
+
+class LabelFont17(Label):
+    pass
+
+class LabelFont16(Label):
+    pass
+
 ################ end of custom small widgets #######################
 ####################################################################
 ####################################################################
 
-####################################################################
-####################################################################
-
-# class FrontEndGUI(BoxLayout):
-#    meshlist_panel = ObjectProperty(None)        # "kivy property names must start with a lowercase letter" fuck ya.
-#    case_spinner = ObjectProperty(None)
-#    datalist_panel = ObjectProperty(None)
-
-class FrontEndGUI(ScreenManager):
-    data_screen = ObjectProperty(None)
-    plot_screen = ObjectProperty(None)
-    pass
-
-class PrototypeApp(App):
-    title = "DIVIEW prototype"
-    bdt = ObjectProperty(None)    # do I need this line ???????????????????????????
-    def build(self):
-        self.bdt = BDT            # for reference to the BDT from inside .kv file
-        self.bpt = BPT            # for reference to the BPT from inside .kv file
-        return FrontEndGUI()
 
 ###################################################
 
@@ -984,9 +1002,13 @@ class BackendDataTracker:
         GUI.root.data_screen.add_case_button.text = mesh_name + " / add a case"
 
     def set_current_case(self, case_name):
-        self.current_case = case_name
-        GUI.root.data_screen.datalist_panel.sync_current_case()
-        GUI.root.data_screen.case_description.text = self.data_tree[self.current_mesh][self.current_case]["case_description"]
+        if case_name == "select a case":
+            GUI.root.data_screen.datalist_panel.sync_current_case(case_name)
+            GUI.root.data_screen.case_description.text = ""
+        else:
+            self.current_case = case_name
+            GUI.root.data_screen.datalist_panel.sync_current_case(case_name)
+            GUI.root.data_screen.case_description.text = self.data_tree[self.current_mesh][self.current_case]["case_description"]
 
     def add_mesh(self, mesh_name, mesh_file):
         self.data_tree[mesh_name] = {}        # add a new branch indexed by the mesh name
@@ -1008,7 +1030,7 @@ class BackendDataTracker:
 
     def add_simulation_data(self, data_name, data_unit, data_file):
         self.data_tree[self.current_mesh][self.current_case][data_name] = {}        # add a simulation data under the case under mesh branch
-        self.data_tree[self.current_mesh][self.current_case][data_name]["data2D_IyIx"] = Data2D(mesh_obj = self.data_tree[self.current_mesh]["mesh"], data2D_file = data_file)    #.IyIx
+        self.data_tree[self.current_mesh][self.current_case][data_name]["data2D_IyIx"] = Data2D(mesh_obj = self.data_tree[self.current_mesh]["mesh"], data2D_file = data_file).IyIx    #.IyIx
         self.data_tree[self.current_mesh][self.current_case][data_name]["data_unit"] = data_unit
         self.data_tree[self.current_mesh][self.current_case][data_name]["data_file"] = data_file
         self.data_tree[self.current_mesh][self.current_case]["simu_var_ref"][data_name] = self.data_tree[self.current_mesh][self.current_case][data_name]["data2D_IyIx"]        # update refdict
@@ -1024,6 +1046,8 @@ class BackendDataTracker:
 
             self.data_tree[self.current_mesh]["geom_var_ref"][var_name] = self.data_tree[self.current_mesh][var_name]["data2D_IyIx"]  # update refdict
 
+            BPT.add_plotable_geometry_data(var_name)        # add to the list of plotables
+
             GUI.root.data_screen.meshlist_panel.add_geom_info(var_name, unit)    # make the change appear in GUI
 
         else:
@@ -1031,6 +1055,8 @@ class BackendDataTracker:
             self.data_tree[self.current_mesh][self.current_case][var_name]["data2D_IyIx"] = eval(formula, {**self.data_tree[self.current_mesh]["geom_var_ref"], ** self.data_tree[self.current_mesh][self.current_case]["simu_var_ref"]})    # evaluate the formula, with references using combination of the geom_var_ref and simu_var_ref dictionaries.
 
             self.data_tree[self.current_mesh][self.current_case]["simu_var_ref"][var_name] = self.data_tree[self.current_mesh][self.current_case][var_name]["data2D_IyIx"]    # update the refdict
+
+            BPT.add_plotable_simulation_data(var_name)        # add to the list of plotables
 
             GUI.root.data_screen.datalist_panel.add_data(var_name, unit, False)    # make the change appear in GUI
         pass
@@ -1254,7 +1280,7 @@ class BackendPlotTracker:
             del self.plots[self.current_plot]["AxesList"][axes_index]
 
 
-    ######## related to ColorBar panel ########
+    ######## related to ColorBar panel ########LabelFont17
 
     def add_colorbar_bin(self, bin_value, bin_color):       
         self.plots[self.current_plot]["Colorbar"]["tangram"].add_bin(bin_value, bin_color)

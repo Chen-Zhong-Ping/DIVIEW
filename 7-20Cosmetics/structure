@@ -1,0 +1,80 @@
+
+This document provides a general overview of the structure of the application(source code) and some brief description of each component without getting into any of the technical details.
+
+The source codes mainly consist of 4 parts:
+    Part I - the front end Graphical User Interface (GUI)
+    Part II - the back end data handler/tracker (BDT)
+    Part III - the back end plot handler/tracker (BPT)
+    Part IV - custom classes (packages)
+
+Part I - GUI
+
+This part contains all GUI widgets. The source code consists of the majority(first) part of the DIVIEWdemo.py and all of prototype.kv. The two have a one-to-one correspondence for each widget: the python file (.py) declares each widget class, its subwidgets ("properties") and functions/methods, while the kivy file (.kv) file, much like a stylesheet, specifies the structure and appearance of each widget as well as what various actions trigger.
+
+The following diagram summarizes the general structure.
+
+I.GUI
+    I.1 data screen
+        I.1.1 mesh column
+            add mesh button
+                load mesh dialog
+            meshlist panel
+                mesh branch
+                    mesh info
+                    add geometry info button
+                        add geometry data dialog
+                    geometry data/info node
+        I.1.2 data column
+            add case button
+                dialog - warning no mesh can't add case
+                dialog - add case
+            case spinner
+            add data button
+                dialog - add data
+            datalist panel
+                data item
+        I.1.3 calculator column
+            calculator button
+            data name and unit inputs
+            formula input
+            data type radio button
+            action buttons
+                calculate
+                clear
+                help
+
+    I.2 plot screen
+        top buttons
+            new plot button
+                add tab dialog
+            add subplot button
+                add subplot dialog
+            save plot button
+                save plot dialog
+        plot tabs binder
+            plot tab
+            plot desk
+                fig/axes panel
+                    fig name button
+                        change name dialog
+                    Axes List SubPanel
+                        Modify Subplot Dialog
+                            change plot content dialog
+                            change display range dialog
+                            change axes position dialog
+                            delet subplot dialog
+                            Change Plot Region Dialog (_2d_quad)
+                            Change Mesh Overlay Dialog (_2d_quad)
+                colorbar panel
+                    set colorbar button
+                        Set Colorbar Dialog
+                            add bin dialog
+                            import colorbar dialog
+                            save colorbar dialog
+                            colorbar settings dialog
+                    color code subpanel
+                        color code bin
+                            change bin dialog
+                                change color dialog
+                                change bin value dialog
+                fig display panel

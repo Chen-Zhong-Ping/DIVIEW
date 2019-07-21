@@ -26,7 +26,9 @@
         orientation: 'vertical'
         size_hint_x: 0.32
         pos_hint: {'x': 0, 'y': 0}
-        Button:
+        padding: [3, 5]
+
+        ButtonFont18:
             text: "add a mesh"
             size_hint: 1, 0.1
             on_release: meshlist_panel_id.show_loadmeshdialog()
@@ -45,8 +47,9 @@
         orientation: 'vertical'
         size_hint_x: 0.32
         pos_hint: {'x': 0.32, 'y': 0}
+        padding: [3, 5]
 
-        Button:
+        ButtonFont18:
             size_hint: 1, 0.12
             id: add_case_button_id
             text: "no mesh selected"
@@ -59,7 +62,7 @@
             CaseSpinner:
                 id: case_spinner_id
 
-            Button:
+            ButtonFont18:
                 size_hint_x: 0.4
                 text: "add data"
                 on_release: datalist_panel_id.show_adddatadialog()
@@ -68,7 +71,7 @@
             size_hint_y: 0.12
             orientation: 'horizontal'
 
-            Label:
+            LabelFont17:
                 id: case_description_id
                 text: "case description"
 
@@ -80,14 +83,15 @@
         orientation: 'vertical'
         size_hint_x: 0.36
         pos_hint: {'x': 0.64, 'y': 0}
+        padding: [3, 5]
 
-        Button:
-            size_hint_y: 0.1
+        ButtonFont18:
+            size_hint_y: 0.108
             text: "to plot screen >"
             on_release: app.root.current = "plot_screen"
 
-        Button:
-            size_hint_y: 0.1
+        ButtonFont18:
+            size_hint_y: 0.11
             text: "calculator"
             on_release: calculator_id.show_hide()
 
@@ -110,12 +114,11 @@
         size_hint_x: 0.02
         background_color: (0, 0, 0, 0)
 
-    Button:
+    ButtonFont17:
         text: root.mesh_name
-#        background_color: (0, 0, 0, 0)
         on_release: app.root.data_screen.meshlist_panel.toggle_node(root)      # here you need to give "root" (the TreeViewButton node) as the argument rather than "self" (the Button itself)
 
-    Button:
+    ButtonFont17:
         size_hint_x: 0.3
         text: "change"
 
@@ -128,17 +131,19 @@
 
         Label:
             text: root.mesh_info
+            font_size: 18
 
 # for some reason I can't do it the following way:
 #            text: "nx: "+str(app.bdt.data_tree[root.parent_node.mesh_name]["mesh"].nx)
 #AttributeError: 'NoneType' object has no attribute 'mesh_name'. It means root.parent_node is a 'NoneType', but you see apparently the button down below can ues it without problem. some KiVy stupidity.
 
-        Button:
-            size_hint_x: 0.3
+        ButtonFont18:
+            size_hint_x: 0.322
             text: "cases >"
             on_release: app.bdt.set_current_mesh(root.parent_node.mesh_name)
-    Button:
-        size_hint_y: 0.35
+
+    ButtonFont18:
+        size_hint_y: 0.45
         text: "add geometry info of the mesh"
         on_release: app.root.data_screen.meshlist_panel.show_load_geomdata_dialog(root.parent_node.mesh_name)
 
@@ -146,11 +151,11 @@
     orientation: 'horizontal'
     height: dp(35)
 
-    Label:
+    LabelFont17:
         text: root.data_name+" ("+root.data_unit+")"
 
-    Button:                            # "Button" Capital initial! not "button". Otherwise will get traceback error takes hours to track down
-        size_hint_x: 0.2
+    ButtonFont16:                            # "Button" Capital initial! not "button". Otherwise will get traceback error takes hours to track down
+        size_hint_x: 0.25
         text: "change"
 
 ####
@@ -163,7 +168,7 @@
 
     Label:
         id: message_id
-        size_hint_y: 0.1
+        size_hint_y: 0.15
         text: "enter a name and choose a mesh file"
 
     BoxLayout:
@@ -248,6 +253,7 @@
     size_hint_x: 0.6
     text_autoupdate: True
 
+    font_size: 17
 #    text: '<select>'
     on_text: app.bdt.set_current_case(self.text)
 
@@ -303,7 +309,7 @@
         orientation: 'vertical'
 
 <DataItem>:
-    Button:
+    ButtonFont17:
         text: root.data_name+" ("+root.data_unit+")"
 
 <AddSOLPSDataDialog>:
@@ -373,20 +379,20 @@
     cal_var_formula: cal_var_formula_id
 
     BoxLayout:
-        size_hint_y: 0.1
+        size_hint_y: 0.13
 
-        Label:
+        LabelFont17:
             text: "calculate data"
 
     BoxLayout:
-        size_hint_y: 0.2
+        size_hint_y: 0.17
 
-        Label:
+        LabelFont17:
             text: "name:"
         TextInput:
             id: cal_var_name_id
 
-        Label:
+        LabelFont17:
             text: "unit:"
         TextInput:
             id: cal_var_unit_id
@@ -395,8 +401,8 @@
         size_hint_y: 0.3
         orientation: 'vertical'
 
-        Label:
-            size_hint_y: 0.4
+        LabelFont17:
+            size_hint_y: 0.45
             text: "enter formula:"
 
         TextInput:
@@ -409,15 +415,15 @@
     BoxLayout:
         size_hint_y: 0.2
 
-        Button:
+        ButtonFont18:
             text: "calculate"
             on_release: app.bdt.add_calculation_var(cal_var_name_id.text, cal_var_unit_id.text, cal_var_formula_id.text, type_indicator_id.is_geomesh_type.active)
 
-        Button:
+        ButtonFont18:
             text: "clear"
             on_release: root.clear_inputs()
 
-        Button:
+        ButtonFont18:
             text: "help?"
 
 ####
@@ -428,7 +434,7 @@
     orientation: 'horizontal'
     is_geomesh_type: is_geomesh_type_id
 
-    Label:
+    LabelFont17:
         size_hint_x: 0.4
         text: "variable tpye:"
 
@@ -444,7 +450,7 @@
                 allow_no_selection: False
 #                value: root.is_geometry_variable
                 size_hint_x: 0.2
-            Label:
+            LabelFont16:
                 text: "geometry/mesh    "
 
         BoxLayout:
@@ -454,7 +460,7 @@
                 allow_no_selection: False
 #                value: root.is_simulation_variable
                 size_hint_x: 0.2
-            Label:
+            LabelFont16:
 #                halign: 'left'                # this does not work as to align the text left
                 text: "simulation/case    "    # so for now just use white space to get the damn thing to the wanted position
 ####
@@ -480,20 +486,20 @@
 
         orientation: 'horizontal'
 
-        Button:
+        ButtonFont18:
             text: "new plot"
             on_release: plot_tabs_binder_id.show_addtab_dialog()
 
-        Button:
+        ButtonFont18:
             text: "add subplot"
 #            on_release: plot_tabs_binder_id.tabs[app.bpt.current_plot]["plot_tab"].plot_desk.figaxes_panel.show_addsubplot_dialog()
             on_release: plot_tabs_binder_id.try_addsubplot()        # take a detour to check whether there exists a plot tab or not.
 
-        Button:
+        ButtonFont18:
             text: "save this plot"
             on_release: plot_tabs_binder_id.show_saveplot_dialog()
 
-        Button:
+        ButtonFont18:
             text: "to data screen >"
             on_release: app.root.current = "data_screen"
 
@@ -557,7 +563,7 @@
     orientation: 'vertical'
     message: message_id
 
-    Label:
+    LabelFont16:
         size_hint_y: 0.1
         text: "enter name of the plot and choose a type"
         id: message_id
@@ -566,7 +572,7 @@
         size_hint_y: 0.3
         orientation: 'horizontal'
 
-        Label:
+        LabelFont16:
             text: "name the plot:"
         TextInput:
             id: plot_name_id
@@ -576,7 +582,7 @@
         size_hint_y: 0.2
         orientation: 'horizontal'
 
-        Label:
+        LabelFont16:
             text: "plot type:"
 
         CheckBox:
@@ -584,36 +590,37 @@
             group: "plot_type"
             active: True
             allow_no_selection: False
-        Label:
+        LabelFont16:
             text: "2d_quad"
 
         CheckBox:
             id: is_2d_tria_type_id
             group: "plot_type"
             allow_no_selection: False
-        Label:
+        LabelFont16:
             text: "2d_tria"
 
         CheckBox:
             id: is_1d_line_type_id
             group: "plot_type"
             allow_no_selection: False
-        Label:
+        LabelFont16:
             text: "1d_line"
 
     BoxLayout:
-        size_hint_y: 0.5
+        size_hint_y: 0.4
         orientation: 'horizontal'
 
-        Button:
+        ButtonFont18:
             text: "create plot"
             on_release: root.tryload(plot_name_id.text, polt_type = "2d_quad")
 
-        Button:
+        ButtonFont18:
             text: "cancel"
             on_release: root.cancel()
 
 <PlotTab>:
+    font_size: 17
     on_release: app.bpt.set_current_plot(self.plot_index)
 
 #    PlotDesk:        # this is the "content" of the PlotTab
@@ -651,24 +658,24 @@
         orientation: 'horizontal'
         size_hint_y: 0.1
 
-        Button:
+        ButtonFont18:
             id: fig_name_button_id
             size_hint_x: 0.7
 #            text: app.root.plot_screen.plot_tabs_binder.tabs[app.bpt.current_plot]["plot_tab"].text    # can't do it this way...
             on_release: root.show_changename_dialog()
 
-        Button:
+        ButtonFont17:
             size_hint_x: 0.3
             text: "PLOT"
             on_release: root.parent.figdixplay_panel.draw_figure()
 
-    Label:
-        size_hint_y: 0.05
+    LabelFont16:
+        size_hint_y: 0.06
         text: "subplot list"
 
     AxesListSubPanel:
         id: axes_list_subpanel_id
-        size_hint_y: 0.85
+        size_hint_y: 0.84
 
 <ChangeNameDialog>:
     orientation: 'vertical'
@@ -678,7 +685,7 @@
         orientation: 'horizontal'
         size_hint_y: 0.5
 
-        Label:
+        LabelFont17:
             size_hint_x: 0.4
             text: "figure title"
 
@@ -690,12 +697,12 @@
         orientation: 'horizontal'
         size_hint_y: 0.5
 
-        Button:
+        ButtonFont18:
             id: rename_button_id
             text: "rename"
             on_release: root.tryload(new_name_id.text)
 
-        Button:
+        ButtonFont18:
             text: "cancel"
             on_release: root.cancel()
 
@@ -1000,7 +1007,7 @@
 <SubPlotItem_2d_quad>:
     orientation: 'vertical'
 
-    Button:
+    ButtonFont16:
         text: root.axes_name
 #        on_release: root.parent.parent.show_deletesubplot_dialog(root.axes_index)
         on_release: root.parent.parent.show_modifysubplot_dialog("2d_quad", root.axes_index)
@@ -1048,31 +1055,31 @@
 <ModifySubplotDialog_2d_quad>:
     orientation: 'vertical'
 
-    Button:
+    ButtonFont16:
         text: "change plot content"
         on_release: root.change_plot_content(root.modify_index)
 
-    Button:
+    ButtonFont16:
         text: "change plot region"
         on_release: root.change_plot_region(root.modify_index)
 
-    Button:
+    ButtonFont16:
         text: "change mesh overlay"
         on_release: root.change_mesh_overlay("2d_quad", root.modify_index)
 
-    Button:
+    ButtonFont16:
         text: "change display range"
         on_release: root.change_display_range(root.modify_index)
 
-    Button:
+    ButtonFont16:
         text: "change position and size"
         on_release: root.change_position(root.modify_index)
 
-    Button:
+    ButtonFont16:
         text: "delete this subplot"
         on_release: root.try_delete(root.modify_index)
 
-    Button:
+    ButtonFont16:
         text: "cancel"
         on_release: root.cancel()
 
@@ -1212,7 +1219,7 @@
 #        size_hint_y: 0.1
 #        text: "general cosmetics"
 
-    Button:
+    ButtonFont17:
         size_hint_y: 0.1
         text: "set colorbar"
         on_release: root.show_set_colorbar_dialog()
@@ -1224,23 +1231,23 @@
 <SetColorbarDialog>:
     orientation: 'vertical'
 
-    Button:
+    ButtonFont17:
         text: "add bin"
         on_release: root.add_bin()
 
-    Button:
+    ButtonFont17:
         text: "import colorbar"
         on_release: root.import_colorbar()
 
-    Button:
+    ButtonFont17:
         text: "save colorbar"
         on_release: root.save_colorbar()
 
-    Button:
+    ButtonFont17:
         text: "update settings"
         on_release: root.update_settings()
 
-    Button:
+    ButtonFont17:
         text: "cancel"
         on_release: root.cancel()
 
@@ -1457,18 +1464,18 @@
 <ChangeBinDialog>:
     orientation: 'vertical'
 
-    Button:
+    ButtonFont16:
         text: "change color"
         on_release: root.change_color(root.bin_index, root.original_color, True)
 
-    Button:
+    ButtonFont16:
         text: "change bin value"
         on_release: root.change_bin_value(root.bin_index, root.original_bin_value_str)
 
-    Button:
+    ButtonFont16:
         text: "delete bin and color"
 
-    Button:
+    ButtonFont16:
         text: "cancel"
         on_release: root.cancel()
 
@@ -1552,7 +1559,7 @@
 ################## end of colorbar panel ##########
 
 <FigDisplayPanel>:               # shared by all three types of plots
-
+    padding: [5, 0]
 
 
 
@@ -1561,9 +1568,26 @@
 ####################################################################
 #################### custom small widgets ##########################
 
+# define custom widgets and declare the frequently used properties to reduce redundancy
+
 <FloatInput>:
     input_filter: 'float'
     multiline: False
+
+<ButtonFont18>:
+    font_size: 18
+
+<ButtonFont17>:
+    font_size: 17
+
+<ButtonFont16>:
+    font_size: 16
+
+<LabelFont17>:
+    font_size: 17
+
+<LabelFont16>:
+    font_size: 16
 
 ################ end of custom small widgets #######################
 ####################################################################

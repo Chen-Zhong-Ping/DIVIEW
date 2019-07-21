@@ -129,11 +129,11 @@ class StainedGlass2DQuad:
 
             elif ix_region is "outer_divertor":
                 if iy_region is "both":
-                    plot_data = numpy.transpose(data.IyIx[:, mesh.ixcut[1]:])
+                    plot_data = numpy.transpose(data[:, mesh.ixcut[1]:])
                 elif iy_region is "SOL":
-                    plot_data = numpy.transpose(data.IyIx[mesh.iycut:, mesh.ixcut[1]:])
+                    plot_data = numpy.transpose(data[mesh.iycut:, mesh.ixcut[1]:])
                 else:    # "PFR"
-                    plot_data = numpy.transpose(data.IyIx[:mesh.iycut, mesh.ixcut[1]:])
+                    plot_data = numpy.transpose(data[:mesh.iycut, mesh.ixcut[1]:])
                     
                 colors = tuple(tangram.map2color(x) for x in numpy.ravel(plot_data))
 #                self.stainedglass["outer_divertor"].set_facecolor(colors)
@@ -141,22 +141,22 @@ class StainedGlass2DQuad:
 
             elif ix_region is "inner_divertor":
                 if iy_region is "both":
-                    plot_data = numpy.transpose(data.IyIx[:, :mesh.ixcut[0]])
+                    plot_data = numpy.transpose(data[:, :mesh.ixcut[0]])
                 elif iy_region is "SOL":
-                    plot_data = numpy.transpose(data.IyIx[mesh.iycut:, :mesh.ixcut[0]])
+                    plot_data = numpy.transpose(data[mesh.iycut:, :mesh.ixcut[0]])
                 else:    # "PFR"
-                    plot_data = numpy.transpose(data.IyIx[:mesh.iycut, :mesh.ixcut[0]])
+                    plot_data = numpy.transpose(data[:mesh.iycut, :mesh.ixcut[0]])
 
                 colors = tuple(tangram.map2color(x) for x in numpy.ravel(plot_data))
                 frame.set_facecolor(colors)
 
             else:    # "core"
                 if iy_region is "both":
-                    plot_data = numpy.transpose(data.IyIx[:, mesh.ixcut[0]:mesh.ixcut[1]])
+                    plot_data = numpy.transpose(data[:, mesh.ixcut[0]:mesh.ixcut[1]])
                 elif iy_region is "SOL":
-                    plot_data = numpy.transpose(data.IyIx[mesh.iycut:, mesh.ixcut[0]:mesh.ixcut[1]])
+                    plot_data = numpy.transpose(data[mesh.iycut:, mesh.ixcut[0]:mesh.ixcut[1]])
                 else:    # "PFR"
-                    plot_data = numpy.transpose(data.IyIx[:mesh.iycut, mesh.ixcut[0]:mesh.ixcut[1]])
+                    plot_data = numpy.transpose(data[:mesh.iycut, mesh.ixcut[0]:mesh.ixcut[1]])
 
                 colors = tuple(tangram.map2color(x) for x in numpy.ravel(plot_data))
                 frame.set_facecolor(colors)
