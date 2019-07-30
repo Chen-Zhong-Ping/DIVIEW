@@ -1,0 +1,1624 @@
+
+<FrontEndGUI>:
+    data_screen: data_screen_id
+    plot_screen: plot_screen_id
+
+    DataScreen:
+        name: "data_screen"
+        id: data_screen_id
+
+    PlotScreen:
+        name: "plot_screen"
+        id: plot_screen_id
+
+####################################################################
+####################################################################
+####################################################################
+######### I.1 data screen ##########################################
+
+<DataScreen>:
+    orientation: 'horizontal'
+    meshlist_panel: meshlist_panel_id
+    case_spinner: case_spinner_id
+    datalist_panel: datalist_panel_id
+    add_case_button: add_case_button_id
+    case_description: case_description_id
+
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_x: 0.32
+        pos_hint: {'x': 0, 'y': 0}
+        padding: [3, 5]
+
+        ButtonFont18:
+            text: "add a mesh"
+            size_hint: 1, 0.1
+            on_release: meshlist_panel_id.show_loadmeshdialog()
+
+        ScrollView:
+            MeshListPanel:
+                id: meshlist_panel_id
+                size_hint_y: None                    # Need this as well to make ScrollView work !
+                height: self.minimum_height          # Need this to update the TreeView's height dynamicalll to make ScrollView work
+#            root_options: dict(text='Tree One')
+                hide_root: True
+                indent_start: 25        # this affects the level 0 node, i.e. the first level if root is hidden
+                indent_level: 20
+
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_x: 0.32
+        pos_hint: {'x': 0.32, 'y': 0}
+        padding: [3, 5]
+
+        ButtonFont18:
+            size_hint: 1, 0.12
+            id: add_case_button_id
+            text: "no mesh selected"
+            on_release: case_spinner_id.show_addcasedialog()
+
+        BoxLayout:
+            size_hint_y: 0.12
+            orientation: 'horizontal'
+            
+            CaseSpinner:
+                id: case_spinner_id
+
+            ButtonFont18:
+                size_hint_x: 0.4
+                text: "add data"
+                on_release: datalist_panel_id.show_adddatadialog()
+
+        BoxLayout:
+            size_hint_y: 0.12
+            orientation: 'horizontal'
+
+            LabelFont17:
+                id: case_description_id
+                text: "case description"
+
+        DataListPanel:
+            id: datalist_panel_id
+
+
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_x: 0.36
+        pos_hint: {'x': 0.64, 'y': 0}
+        padding: [3, 5]
+
+        ButtonFont18:
+            size_hint_y: 0.108
+            text: "to plot screen >"
+            on_release: app.root.current = "plot_screen"
+
+        ButtonFont18:
+            size_hint_y: 0.11
+            text: "calculator"
+            on_release: calculator_id.show_hide()
+
+        Calculator:
+            id: calculator_id
+            size_hint_x: 0
+            opacity: 0
+
+####################################################################
+####################################################################
+######## I.1.1 mesh column #########################################
+
+####### I.1.1.2 mesh list panel: panel for a list of mesh
+
+# <MeshListPanel>: # already declared in the above class, under "ScrollView"
+
+###### TreeView nodes ####
+
+###### I.1.1.2.1 mesh branch
+
+<MeshBranchNode>:
+    height: app.root.data_screen.height*0.06
+    orientation: 'horizontal'
+
+    BoxLayout:                           # dummy transparent box to push the button to the right in order to show the drop-down arrow
+        size_hint_x: 0.02
+        background_color: (0, 0, 0, 0)
+
+    ButtonFont17:
+        text: root.mesh_name
+        on_release: app.root.data_screen.meshlist_panel.toggle_node(root)      # here you need to give "root" (the TreeViewButton node) as the argument rather than "self" (the Button itself)
+
+    ButtonFont17:
+        size_hint_x: 0.3
+        text: "change"
+
+##### I.1.1.2.1.1 mesh info
+
+<MeshInfoNodeNode>:
+    orientation: 'vertical'
+
+    BoxLayout:
+#        size_hint_x: 0.5
+        orientation: 'horizontal'
+
+        Label:
+            text: root.mesh_info
+            font_size: 18
+
+# for some reason I can't do it the following way:
+#            text: "nx: "+str(app.bdt.data_tree[root.parent_node.mesh_name]["mesh"].nx)
+#AttributeError: 'NoneType' object has no attribute 'mesh_name'. It means root.parent_node is a 'NoneType', but you see apparently the button down below can ues it without problem. some KiVy stupidity.
+
+        ButtonFont18:
+            size_hint_x: 0.322
+            text: "cases >"
+            on_release: app.bdt.set_current_mesh(root.parent_node.mesh_name)
+
+    ButtonFont18:
+        size_hint_y: 0.45
+        text: "add geometry info of the mesh"
+        on_release: app.root.data_screen.meshlist_panel.show_load_geomdata_dialog(root.parent_node.mesh_name)
+
+##### I.1.1.2.1.3 geometry data/info node
+
+<GeomInfoNodeNode>:
+    orientation: 'horizontal'
+    height: dp(35)
+
+    LabelFont17:
+        text: root.data_name+" ("+root.data_unit+")"
+
+    ButtonFont16:                            # "Button" Capital initial! not "button". Otherwise will get traceback error takes hours to track down
+        size_hint_x: 0.25
+        text: "change"
+
+####
+
+#### dialogs as contents for popup ####
+
+<LoadMeshDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.15
+        text: "enter a name and choose a mesh file"
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+
+        Label:
+            text: "mesh name"
+
+        TextInput:
+            id: new_mesh_name_id
+            multiline: False
+
+    FileChooserIconView:
+        id: filechooser_id
+        path: "./"
+        filters: ['*.sno']
+        dirselect: True        # trick to make double clicking open a directory, downside is it selects a directory by single click
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+        Button:
+            size_hint: 0.5, 1
+            text: "Add"
+            on_release: root.tryload(new_mesh_name_id.text, filechooser_id.selection)
+
+        Button:
+            size_hint: 0.5, 1
+            text: "Cancel"
+            on_release: root.cancel()
+
+<LoadGeomDataDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.1
+        text: "enter data name, unit and choose a data file"
+
+    BoxLayout:
+        size_hint_y: 0.15
+        Label:
+            text: "data name"
+        TextInput:
+            id: data_name_id
+            multiline: False
+        Label:
+            text: "unit"
+        TextInput:
+            id: data_unit_id
+
+    FileChooserListView:
+        id: geomdatafilechooser_id
+        path: "./"
+#        dirselect: True        # trick to make double clicking open a directory
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+        Button:
+            size_hint: 0.5, 1
+            text: "Add"
+            on_release: root.tryload(data_name_id.text, data_unit_id.text, geomdatafilechooser_id.selection)
+        Button:
+            size_hint: 0.5, 1
+            text: "Cancel"
+            on_release: root.cancel()
+
+######## end of I.1.1 mesh column ##################################
+####################################################################
+####################################################################
+
+####################################################################
+####################################################################
+######## I.1.2 data column: panel for a list of cases/data #########
+
+####################################################################
+####### I.1.2.2 case spinner: simulation case name spinner #########
+
+<CaseSpinner>:
+    size_hint_x: 0.6
+    text_autoupdate: True
+
+    font_size: 17
+#    text: '<select>'
+    on_text: app.bdt.set_current_case(self.text)
+
+<AddCaseDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.15
+        text: "enter a name and some description of the case"
+
+    BoxLayout:
+        size_hint_y: 0.25
+        orientation: 'horizontal'
+        Label:
+            text: "case name"
+        TextInput:
+            id: case_name_id
+            multiline: False
+
+    BoxLayout:
+        size_hint_y: 0.4
+        orientation: 'horizontal'
+        Label:
+            text: "description"
+        TextInput:
+            id: description_id
+
+    BoxLayout:
+        size_hint_y: 0.2
+        orientation: 'horizontal'
+        Button:
+            text: "Add"
+            on_release: root.tryload(case_name_id.text, description_id.text)
+
+        Button:
+            text: "Cancel"
+            on_release: root.cancel()
+
+####################################################################
+#### I.1.2.4 datalist panel: a list of data pertaining to each simulation case ####
+
+<DataListPanel>:
+    viewclass: "DataItem"
+
+    RecycleBoxLayout:                # you need this block to make the recycleview show items
+        default_size: None, dp(36)
+        default_size_hint: 1, None
+        size_hint_y: None
+        height: self.minimum_height
+        orientation: 'vertical'
+
+<DataItem>:
+    ButtonFont17:
+        text: root.data_name+" ("+root.data_unit+")"
+
+###### dialogs as contents for popup ####
+
+<AddSOLPSDataDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.1
+        text: "enter data name, unit and choose a data file"
+
+    BoxLayout:
+        size_hint_y: 0.2
+        orientation: 'horizontal'
+        Label:
+            text: "data name"
+        TextInput:
+            id: data_name_id
+            multiline: False
+        Label:
+            text: "unit"
+        TextInput:
+            id: data_unit_id
+            multiline: False
+
+    FileChooserListView:
+        id: datafilechooser_id
+        path: "./"
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+        Button:
+            size_hint: 0.5, 1
+            text: "Add"
+            on_release: root.tryload(data_name_id.text, data_unit_id.text, datafilechooser_id.selection)
+        Button:
+            size_hint: 0.5, 1
+            text: "Cancel"
+            on_release: root.cancel()
+
+<WarningCantAddDialog>:
+    orientation: 'vertical'
+#    message: message_id
+
+    Label:
+        id: message_id
+        text: root.message
+
+    Button:
+        text: "got it"
+        on_release: root.cancel()
+
+######## end of I.1.2 data column ##################################
+####################################################################
+####################################################################
+
+####################################################################
+####################################################################
+######## I.1.3 calculator column ###################################
+
+####################################################################
+###### I.1.3.1 calculator panel ####################################
+
+<Calculator>:
+    orientation: 'vertical'
+    type_indicator: type_indicator_id
+    cal_var_name: cal_var_name_id
+    cal_var_unit: cal_var_unit_id
+    cal_var_formula: cal_var_formula_id
+
+    BoxLayout:
+        size_hint_y: 0.13
+
+        LabelFont17:
+            text: "calculate data"
+
+    BoxLayout:
+        size_hint_y: 0.17
+
+        LabelFont17:
+            text: "name:"
+        TextInput:
+            id: cal_var_name_id
+
+        LabelFont17:
+            text: "unit:"
+        TextInput:
+            id: cal_var_unit_id
+
+    BoxLayout:
+        size_hint_y: 0.3
+        orientation: 'vertical'
+
+        LabelFont17:
+            size_hint_y: 0.45
+            text: "enter formula:"
+
+        TextInput:
+            id: cal_var_formula_id
+
+    CalculationVarableType_RadioButton:
+        size_hint_y: 0.2
+        id: type_indicator_id
+
+    BoxLayout:
+        size_hint_y: 0.2
+
+        ButtonFont18:
+            text: "calculate"
+            on_release: app.bdt.add_calculation_var(cal_var_name_id.text, cal_var_unit_id.text, cal_var_formula_id.text, type_indicator_id.is_geomesh_type.active)
+
+        ButtonFont18:
+            text: "clear"
+            on_release: root.clear_inputs()
+
+        ButtonFont18:
+            text: "help?"
+
+
+#### I.1.3.1.3 data type radio button
+
+<CalculationVarableType_RadioButton>:
+    orientation: 'horizontal'
+    is_geomesh_type: is_geomesh_type_id
+
+    LabelFont17:
+        size_hint_x: 0.4
+        text: "variable tpye:"
+
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_x: 0.6
+
+        BoxLayout:
+            CheckBox:
+                id: is_geomesh_type_id
+                group: "calculation_var_type"
+                active: True
+                allow_no_selection: False
+                size_hint_x: 0.2
+            LabelFont16:
+                text: "geometry/mesh    "
+
+        BoxLayout:
+            CheckBox:
+                group: "calculation_var_type"
+                allow_no_selection: False
+                size_hint_x: 0.2
+            LabelFont16:
+                text: "simulation/case    "
+
+######## end of I.1.3 calculator column ############################
+####################################################################
+####################################################################
+
+######### end of I.1 data screen ###################################
+####################################################################
+####################################################################
+####################################################################
+
+
+####################################################################
+####################################################################
+####################################################################
+######### I.1 plot screen ##########################################
+
+<PlotScreen>:
+    orientation: 'vertical'
+    plot_tabs_binder: plot_tabs_binder_id
+
+    BoxLayout:
+        size_hint_y: 0.1
+        pos_hint: {'x': 0, 'y': 0.9}
+
+        orientation: 'horizontal'
+
+        ButtonFont18:
+            text: "new plot"
+            on_release: plot_tabs_binder_id.show_addtab_dialog()
+
+        ButtonFont18:
+            text: "add subplot"
+            on_release: plot_tabs_binder_id.try_addsubplot()        # take a detour to check whether there exists a plot tab or not.
+
+        ButtonFont18:
+            text: "save this plot"
+            on_release: plot_tabs_binder_id.show_saveplot_dialog()
+
+        ButtonFont18:
+            text: "to data screen >"
+            on_release: app.root.current = "data_screen"
+
+    PlotTabsBinder:
+        size_hint_y: 0.9
+        pos_hint: {'x': 0, 'y': 0}
+        id: plot_tabs_binder_id
+
+####################################################################
+######## I.2.1 various dialogs for the top row buttons #############
+
+<AddTabDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    LabelFont16:
+        size_hint_y: 0.1
+        text: "enter name of the plot and choose a type"
+        id: message_id
+
+    BoxLayout:
+        size_hint_y: 0.3
+        orientation: 'horizontal'
+
+        LabelFont16:
+            text: "name the plot:"
+        TextInput:
+            id: plot_name_id
+            multiline: False
+
+    BoxLayout:
+        size_hint_y: 0.2
+        orientation: 'horizontal'
+
+        LabelFont16:
+            text: "plot type:"
+
+        CheckBox:
+            id: is_2d_quad_type_id
+            group: "plot_type"
+            active: True
+            allow_no_selection: False
+        LabelFont16:
+            text: "2d_quad"
+
+        CheckBox:
+            id: is_2d_tria_type_id
+            group: "plot_type"
+            allow_no_selection: False
+        LabelFont16:
+            text: "2d_tria"
+
+        CheckBox:
+            id: is_1d_line_type_id
+            group: "plot_type"
+            allow_no_selection: False
+        LabelFont16:
+            text: "1d_line"
+
+    BoxLayout:
+        size_hint_y: 0.4
+        orientation: 'horizontal'
+
+        ButtonFont18:
+            text: "create plot"
+            on_release: root.tryload(plot_name_id.text, polt_type = "2d_quad")
+
+        ButtonFont18:
+            text: "cancel"
+            on_release: root.cancel()
+
+<AddSubplotDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        size_hint_y: 0.2
+        text: "choose what to plot"
+        id: message_id
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+
+        Label:
+            size_hint_x: 0.3
+            text: "mesh:"
+        Spinner:
+            id: mesh_spinner_id
+            sync_height: True
+            values: list(app.bpt.plotables.keys())
+            on_text: case_spinner_id.values = list(app.bpt.plotables[self.text].keys())
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+
+        Label:
+            size_hint_x: 0.3
+            text: "case:"
+        Spinner:
+            id: case_spinner_id
+            sync_height: True
+            text_autoupdate: True
+            values:
+            on_text: data_spinner_id.values = app.bpt.plotables[mesh_spinner_id.text][self.text]    # it is already a list by construction
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+
+        Label:
+            size_hint_x: 0.3
+            text: "data:"
+        Spinner:
+            id: data_spinner_id
+            sync_height: True
+            text_autoupdate: True
+            values:
+
+    BoxLayout:
+        size_hint_y: 0.15
+        orientation: 'horizontal'
+
+        Label:
+            size_hint_x: 0.3
+            text: "name:"
+
+        TextInput:
+            id: axes_name_id
+
+    BoxLayout:
+        size_hint_y: 0.2
+        orientation: 'horizontal'
+
+        Button:
+            text: "add subplot"
+            on_release: root.tryload(mesh_spinner_id.text, case_spinner_id.text, data_spinner_id.text, axes_name_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+<SavePlotDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        size_hint_y: 0.1
+        text: "enter file name and choose a format"
+        id: message_id
+
+    BoxLayout:
+        size_hint_y: 0.25
+        orientation: 'horizontal'
+
+        Label:
+            text: "name the file:"
+        TextInput:
+            id: file_name_id
+            multiline: False
+
+    BoxLayout:
+        size_hint_y: 0.25
+        orientation: 'horizontal'
+
+        Label:
+            text: "file format:"
+        Spinner:
+            id: file_format_id
+            sync_height: True
+            values: ("svg", "eps")    # "png" is not supported at the moment
+            text: "svg"
+
+    BoxLayout:
+        size_hint_y: 0.4
+        orientation: 'horizontal'
+
+        Button:
+            text: "save plot"
+            on_release: root.try_save(file_name_id.text, file_format_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+####################################################################
+####################################################################
+######### I.2.2 plot tabs binder ###################################
+
+<PlotTabsBinder>:
+    do_default_tab: False
+
+######## I.2.2.1 plot tab #####################################
+
+<PlotTab>:
+    font_size: 17
+    on_release: app.bpt.set_current_plot(self.plot_index)
+
+
+######## end of I.2.2 plot tabs binder #############################
+####################################################################
+####################################################################
+
+####################################################################
+####################################################################
+######## I.2.2.2 plot desk (2d_quad) ###############################
+
+<PlotDesk_2d>:
+    orientation: 'horizontal'
+    figaxes_panel: figaxes_panel_id
+    figdixplay_panel: figdixplay_panel_id
+    colorbar_panel: colorbar_panel_id
+
+    FigAxesPanel:
+        id: figaxes_panel_id
+        size_hint_x: 0.18
+
+    FigDisplayPanel:
+        id: figdixplay_panel_id
+        size_hint_x: 0.7
+
+    ColorbarPanel_2d:
+        id: colorbar_panel_id
+        size_hint_x: 0.12
+
+####################################################################
+####### I.2.2.2.1 fig/axes panel ###################################
+
+<FigAxesPanel>:
+    orientation: 'vertical'
+    fig_name_button: fig_name_button_id
+    axes_list_subpanel: axes_list_subpanel_id
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.1
+
+        ButtonFont18:
+            id: fig_name_button_id
+            size_hint_x: 0.7
+            on_release: root.show_changename_dialog()
+
+        ButtonFont17:
+            size_hint_x: 0.3
+            text: "PLOT"
+            on_release: root.parent.figdixplay_panel.draw_figure()
+
+    LabelFont16:
+        size_hint_y: 0.06
+        text: "subplot list"
+
+    AxesListSubPanel:
+        id: axes_list_subpanel_id
+        size_hint_y: 0.84
+
+<ChangeNameDialog>:
+    orientation: 'vertical'
+    rename_button: rename_button_id
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.5
+
+        LabelFont17:
+            size_hint_x: 0.4
+            text: "figure title"
+
+        TextInput:
+            id: new_name_id
+            size_hint_x: 0.6
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.5
+
+        ButtonFont18:
+            id: rename_button_id
+            text: "rename"
+            on_release: root.tryload(new_name_id.text)
+
+        ButtonFont18:
+            text: "cancel"
+            on_release: root.cancel()
+
+###### I.2.2.2.1.2 axes list subPanel #########################
+
+<AxesListSubPanel>:
+
+    RecycleBoxLayout:                # you need this block to make the recycleview show items
+        default_size: None, dp(400)
+        default_size_hint: 1, None
+        size_hint_y: None
+        height: self.minimum_height
+        orientation: 'vertical'
+
+#### I.2.2.2.1.2.1 subplot item
+
+<SubPlotItem_2d_quad>:
+    orientation: 'vertical'
+
+    ButtonFont16:
+        text: root.axes_name
+        on_release: root.parent.parent.show_modifysubplot_dialog("2d_quad", root.axes_index)
+
+    Label:
+        text: "mesh: "+root.mesh_name
+        halign: 'left'
+
+    Label:
+        text: "case: "+root.case_name
+
+    Label:
+        text: "data: "+root.data_name
+
+    Label:
+        text: "poloidal region: "+root.ix_region
+
+    Label:
+        text: "radial region: "+root.iy_region
+
+    Label:
+        text: "mesh overlay: "+str(root.is_mesh_overlay)
+
+    Label:
+        text: "plot range x: ("+str(root.axes_x_min)+", "+str(root.axes_x_max)+")"
+
+    Label:
+        text: "plot range y: ("+str(root.axes_y_min)+", "+str(root.axes_y_max)+")"
+
+    Label:
+        text: "left: "+str(root.pos_axes_left)+", bottom: "+str(root.pos_axes_bottom)
+
+    Label:
+        text: "z order: "+str(root.pos_axes_z)
+
+    Label:
+        text: "axes width: "+str(root.pos_axes_width)
+
+    Label:
+        text: "axes height: "+str(root.pos_axes_height)
+
+    Label:
+        text: "axes index: "+str(root.axes_index)
+
+#### I.2.2.2.1.2.2 modify subplot dialog
+
+<ModifySubplotDialog_2d_quad>:
+    orientation: 'vertical'
+
+    ButtonFont16:
+        text: "change plot content"
+        on_release: root.change_plot_content(root.modify_index)
+
+    ButtonFont16:
+        text: "change plot region"
+        on_release: root.change_plot_region(root.modify_index)
+
+    ButtonFont16:
+        text: "change mesh overlay"
+        on_release: root.change_mesh_overlay("2d_quad", root.modify_index)
+
+    ButtonFont16:
+        text: "change display range"
+        on_release: root.change_display_range(root.modify_index)
+
+    ButtonFont16:
+        text: "change position and size"
+        on_release: root.change_position(root.modify_index)
+
+    ButtonFont16:
+        text: "delete this subplot"
+        on_release: root.try_delete(root.modify_index)
+
+    ButtonFont16:
+        text: "cancel"
+        on_release: root.cancel()
+
+
+<ChangePlotContentDialog>:
+    orientation: 'vertical'
+
+    BoxLayout:
+        size_hint_y: 0.25
+        orientation: 'horizontal'
+
+        Label:
+            size_hint_x: 0.3
+            text: "mesh:"
+        Spinner:
+            id: mesh_spinner_id
+            sync_height: True
+            values: list(app.bpt.plotables.keys())
+            on_text: case_spinner_id.values = list(app.bpt.plotables[self.text].keys())
+            text: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["mesh_name"]
+
+    BoxLayout:
+        size_hint_y: 0.25
+        orientation: 'horizontal'
+
+        Label:
+            size_hint_x: 0.3
+            text: "case:"
+        Spinner:
+            id: case_spinner_id
+            sync_height: True
+            values: list(app.bpt.plotables[app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["mesh_name"]].keys())
+            on_text: data_spinner_id.values = app.bpt.plotables[mesh_spinner_id.text][self.text]
+            text: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["case_name"]
+
+    BoxLayout:
+        size_hint_y: 0.25
+        orientation: 'horizontal'
+
+        Label:
+            size_hint_x: 0.3
+            text: "data:"
+        Spinner:
+            id: data_spinner_id
+            sync_height: True
+            values: app.bpt.plotables[app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["mesh_name"]][app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["case_name"]]
+            text: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["data_name"]
+
+    BoxLayout:
+        size_hint_y: 0.25
+        orientation: 'horizontal'
+
+        Button:
+            text: "change"
+            on_release: root.try_load(mesh_spinner_id.text, case_spinner_id.text, data_spinner_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+<ChangePlotRegionDialog_2d_quad>:
+    orientation: 'vertical'
+
+    Label:
+        size_hint_y: 0.25
+        text: "choose plot regions"
+
+    BoxLayout:
+        size_hint_y: 0.25
+        orientation: 'horizontal'
+
+        Label:
+            size_hint_x: 0.5
+            text: "poloidal region:"
+        Spinner:
+            id: ix_region_spinner_id
+            sync_height: True
+            values: ("outer_divertor", "inner_divertor", "core", "full")
+            text: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["ix_region"]
+
+    BoxLayout:
+        size_hint_y: 0.25
+        orientation: 'horizontal'
+
+        Label:
+            size_hint_x: 0.5
+            text: "radial region:"
+        Spinner:
+            id: iy_region_spinner_id
+            sync_height: True
+            values: ("SOL", "PFR", "both")
+            text: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["iy_region"]
+
+    BoxLayout:
+        size_hint_y: 0.25
+        orientation: 'horizontal'
+
+        Button:
+            text: "change"
+            on_release: root.try_load(ix_region_spinner_id.text, iy_region_spinner_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+
+<ChangeMeshOverlayDialog_2d_quad>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.125
+        text: "enter mesh frame settings"
+
+    BoxLayout:
+        size_hint_y: 0.175
+        orientation: 'horizontal'
+
+        Label:
+            text: "line width:"
+        FloatInput:
+            id: linewidth_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["linewidth"])
+
+    Label:
+        size_hint_y: 0.125
+        text: "edge color:"
+
+    BoxLayout:
+        size_hint_y: 0.175
+        orientation: 'horizontal'
+
+        Label:
+            text: "R:"
+        FloatInput:
+            id: color_r_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["edgecolor"][0])
+
+        Label:
+            text: "G:"
+        FloatInput:
+            id: color_g_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["edgecolor"][1])
+
+        Label:
+            text: "B:"
+        FloatInput:
+            id: color_b_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["edgecolor"][2])
+
+        Label:
+            text: "A:"
+        FloatInput:
+            id: color_a_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["edgecolor"][3])
+
+    BoxLayout:
+        size_hint_y: 0.2
+        orientation: 'horizontal'
+
+        Label:
+            text: "mesh overlay"
+        CheckBox:
+            id: mesh_overlay_checkbox_id
+            active: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["is_mesh_overlay"]
+
+    BoxLayout:
+        size_hint_y: 0.2
+        orientation: 'horizontal'
+
+        Button:
+            text: "change"
+            on_release: root.try_load(linewidth_id.text, color_r_id.text, color_g_id.text, color_b_id.text, color_a_id.text, mesh_overlay_checkbox_id.active)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+
+<ChangeDisplayRangeDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.2
+        text: "enter x and y range"
+
+    BoxLayout:
+        size_hint_y: 0.3
+        orientation: 'horizontal'
+
+        Label:
+            text: "x_min:"
+        FloatInput:
+            id: x_min_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["axes_x_min"])
+        Label:
+            text: "x_max:"
+        FloatInput:
+            id: x_max_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["axes_x_max"])
+
+    BoxLayout:
+        size_hint_y: 0.3
+        orientation: 'horizontal'
+
+        Label:
+            text: "y_min:"
+        FloatInput:
+            id: y_min_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["axes_y_min"])
+        Label:
+            text: "y_max:"
+        FloatInput:
+            id: y_max_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["axes_y_max"])
+
+    BoxLayout:
+        size_hint_y: 0.2
+        orientation: 'horizontal'
+
+        Button:
+            text: "change"
+            on_release: root.try_load(x_min_id.text, x_max_id.text, y_min_id.text, y_max_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+<ChangeAxesPositionDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.125
+        text: "enter position and size"
+
+    BoxLayout:
+        size_hint_y: 0.125
+        orientation: 'horizontal'
+
+        Label:
+            text: "subplot name:"
+        TextInput:
+            id: axes_name_id
+            text: app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["axes_name"]
+
+    BoxLayout:
+        size_hint_y: 0.125
+        orientation: 'horizontal'
+
+        Label:
+            text: "left:"
+        FloatInput:
+            id: left_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_left"])
+
+    BoxLayout:
+        size_hint_y: 0.125
+        orientation: 'horizontal'
+
+        Label:
+            text: "bottom:"
+        FloatInput:
+            id: bottom_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_bottom"])
+
+    BoxLayout:
+        size_hint_y: 0.125
+        orientation: 'horizontal'
+
+        Label:
+            text: "width:"
+        FloatInput:
+            id: width_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_width"])
+
+    BoxLayout:
+        size_hint_y: 0.125
+        orientation: 'horizontal'
+
+        Label:
+            text: "height:"
+        FloatInput:
+            id: height_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_height"])
+
+    BoxLayout:
+        size_hint_y: 0.125
+        orientation: 'horizontal'
+
+        Label:
+            text: "z order:"
+        TextInput:
+            id: z_pos_id
+            input_filter: 'int'
+            multiline: False
+            text: str(app.bpt.plots[app.bpt.current_plot]["AxesList_settings"][root.modify_index]["pos_axes_z"])
+
+    BoxLayout:
+        size_hint_y: 0.125
+        orientation: 'horizontal'
+
+        Button:
+            text: "change"
+            on_release: root.try_load(axes_name_id.text, left_id.text, bottom_id.text, width_id.text, height_id.text, z_pos_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+
+<DeleteSubplotDialog>:
+    orientation: 'vertical'
+
+    Label:
+        text: "delete subplot?"
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Button:
+            text: "delete"
+            on_release: root.delete_axes()
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+####### end of I.2.2.2.1 fig/axes panel ############################
+####################################################################
+
+####################################################################
+####### I.2.2.2.2 colorbar panel ###################################
+
+<ColorbarPanel_2d>:              # shared by both _2d_quad and _2d_tria
+    orientation: 'vertical'
+    colorcodesubpanel: colorcodesubpanel_id
+
+    ButtonFont17:
+        size_hint_y: 0.1
+        text: "set colorbar"
+        on_release: root.show_set_colorbar_dialog()
+
+    ColorCodeSubpanel:
+        size_hint_y: 0.9
+        id: colorcodesubpanel_id
+
+#### I.2.2.2.2.1 Set Colorbar Dialog
+
+<SetColorbarDialog>:
+    orientation: 'vertical'
+
+    ButtonFont17:
+        text: "add bin"
+        on_release: root.add_bin()
+
+    ButtonFont17:
+        text: "import colorbar"
+        on_release: root.import_colorbar()
+
+    ButtonFont17:
+        text: "save colorbar"
+        on_release: root.save_colorbar()
+
+    ButtonFont17:
+        text: "update settings"
+        on_release: root.update_settings()
+
+    ButtonFont17:
+        text: "cancel"
+        on_release: root.cancel()
+
+<AddBinDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        text: "enter bin value and color code"
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Label:
+            text: "bin value:"
+        FloatInput:
+            id: bin_value_id
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Label:
+            text: "R:"
+        FloatInput:
+            id: color_r_id
+            text: "1.0"
+
+        Label:
+            text: "G:"
+        FloatInput:
+            id: color_g_id
+            text: "1.0"
+
+        Label:
+            text: "B:"
+        FloatInput:
+            id: color_b_id
+            text: "1.0"
+
+        Label:
+            text: "A:"
+        FloatInput:
+            id: color_a_id
+            text: "1.0"
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Button:
+            text: "add bin"
+            on_release: root.tryload(bin_value_id.text, color_r_id.text, color_g_id.text, color_b_id.text, color_a_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+<ImportColorbarDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.15
+        text: "choose a .cb file"
+
+    FileChooserListView:
+        id: colorbarfilechooser_id
+        size_hint_y: 0.7
+        path: "./"
+        filters: ['*.cb']
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.15
+
+        Button:
+            text: "import"
+            on_release: root.tryload(colorbarfilechooser_id.selection)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+<SaveColorbarDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.3
+        text: "enter a file name:"
+
+    TextInput:
+        id: file_name_id
+        size_hint_y: 0.35
+        multiline: False
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.35
+
+        Button:
+            text: "save"
+            on_release: root.tryload(file_name_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+<ColorbarSettingsDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        size_hint_y: 0.16
+        text: "colorbar appearance on figure"
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.21
+
+        Label:
+            text: "left:"
+        FloatInput:
+            id: left_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["Colorbar"]["Position_on_Figure"]["left"])
+        Label:
+            text: "bottom:"
+        FloatInput:
+            id: bottom_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["Colorbar"]["Position_on_Figure"]["bottom"])
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.21
+
+        Label:
+            text: "width:"
+        FloatInput:
+            id: width_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["Colorbar"]["Position_on_Figure"]["width"])
+        Label:
+            text: "height:"
+        FloatInput:
+            id: height_id
+            text: str(app.bpt.plots[app.bpt.current_plot]["Colorbar"]["Position_on_Figure"]["height"])
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.21
+
+        Label:
+            text: "z:"
+        TextInput:
+            id: z_id
+            input_filter: 'int'
+            multiline: False
+            text: str(app.bpt.plots[app.bpt.current_plot]["Colorbar"]["Position_on_Figure"]["z"])
+        Label:
+            text: "show:"
+        CheckBox:
+            id: is_show_id
+            active: app.bpt.plots[app.bpt.current_plot]["Colorbar"]["Position_on_Figure"]["is_show"]
+
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint_y: 0.21
+
+        Button:
+            text: "update settings"
+            on_release: root.tryload(left_id.text, bottom_id.text, width_id.text, height_id.text, z_id.text, is_show_id.active)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+#### I.2.2.2.2.2 color code subpanel
+
+<ColorCodeSubpanel>:
+    viewclass: "ColorCodeBin"
+
+    RecycleBoxLayout:                # you need this block to make the recycleview show items
+        default_size: None, dp(40)
+        default_size_hint: 1, None
+        size_hint_y: None
+        height: self.minimum_height
+        orientation: 'vertical'
+
+### I.2.2.2.2.2.1 color code bin
+
+<ColorCodeBin>:
+    orientation: 'vertical'
+
+    BoxLayout:
+        size_hint_y: 0.6
+        orientation: 'horizontal'
+
+        Button:
+            background_normal: ''
+            background_color: root.bin_color
+            on_release: root.parent.parent.show_changebin_dialog(root.bin_index, root.bin_color, root.bin_value_str)
+        Label:        # dummy fill
+
+
+    BoxLayout:
+        size_hint_y: 0.4
+        orientation: 'horizontal'
+
+        Label:        # dummy fill
+        Label:
+            text: root.bin_value_str
+
+
+<ChangeBinDialog>:
+    orientation: 'vertical'
+
+    ButtonFont16:
+        text: "change color"
+        on_release: root.change_color(root.bin_index, root.original_color, True)
+
+    ButtonFont16:
+        text: "change bin value"
+        on_release: root.change_bin_value(root.bin_index, root.original_bin_value_str)
+
+    ButtonFont16:
+        text: "delete bin and color"
+
+    ButtonFont16:
+        text: "cancel"
+        on_release: root.cancel()
+
+<ChangeColorDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        text: "change the color code"
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Label:
+            text: "R:"
+        FloatInput:
+            id: color_r_id
+            text: str(root.original_color[0])
+
+        Label:
+            text: "G:"
+        FloatInput:
+            id: color_g_id
+            text: str(root.original_color[1])
+
+        Label:
+            text: "B:"
+        FloatInput:
+            id: color_b_id
+            text: str(root.original_color[2])
+
+        Label:
+            text: "A:"
+        FloatInput:
+            id: color_a_id
+            text: str(root.original_color[3])
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Button:
+            text: "change color"
+            on_release: root.tryload(color_r_id.text, color_g_id.text, color_b_id.text, color_a_id.text)
+
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+
+<ChangeBinValueDialog>:
+    orientation: 'vertical'
+    message: message_id
+
+    Label:
+        id: message_id
+        text: "enter a new bin value"
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Label:
+            text: "bin value:"
+        FloatInput:
+            id: bin_value_id
+            text: root.original_value_str
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Button:
+            text: "update"
+            on_release: root.tryload(bin_value_id.text)
+
+        Button:
+            text: "cancel"
+            on_release: root.cancel()
+        
+####### end of I.2.2.2.2 colorbar panel ############################
+####################################################################
+
+####################################################################
+####### I.2.2.2.3 fig display panel ################################
+
+<FigDisplayPanel>:               # shared by all three types of plots
+    padding: [5, 0]
+
+####### end of I.2.2.2.3 fig display panel #########################
+####################################################################
+
+######## end of I.2.2.2 plot desk ##################################
+####################################################################
+####################################################################
+
+######### end of I.1 plot screen ###################################
+####################################################################
+####################################################################
+####################################################################
+
+
+####################################################################
+####################################################################
+####################################################################
+#################### custom small widgets ##########################
+
+# define custom widgets and declare the frequently used properties to reduce redundancy
+
+<FloatInput>:
+    input_filter: 'float'
+    multiline: False
+
+<ButtonFont18>:
+    font_size: 18
+
+<ButtonFont17>:
+    font_size: 17
+
+<ButtonFont16>:
+    font_size: 16
+
+<LabelFont17>:
+    font_size: 17
+
+<LabelFont16>:
+    font_size: 16
+
+################ end of custom small widgets #######################
+####################################################################
+####################################################################
+####################################################################

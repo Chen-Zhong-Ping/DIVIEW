@@ -1,0 +1,298 @@
+
+This document provides a general overview of the structure of the application(source code) and some brief description of each component without getting into any of the technical details.
+
+The source codes mainly consist of 4 parts:
+    Part I - the front end Graphical User Interface (GUI)
+    Part II - the back end data handler/tracker (BDT)
+    Part III - the back end plot handler/tracker (BPT)
+    Part IV - custom modules (packages)
+
+Part I - GUI
+
+This part contains all GUI widgets. The source code consists of the majority(first) part of the DIVIEWdemo.py and all of prototype.kv. The two have a one-to-one correspondence for each widget: the python file (.py) declares each widget class, its subwidgets ("properties") and functions/methods, while the kivy file (.kv) file, much like a stylesheet, specifies the structure and appearance of each widget as well as what various actions trigger.
+
+The following diagram summarizes the general structure.
+
+I.GUI
+    I.1 data screen
+        I.1.1 mesh column
+            add mesh button
+                load mesh dialog
+            mesh list panel
+                mesh branch
+                    mesh info
+                    add geometry info button
+                        add geometry data dialog
+                    geometry data/info node
+        I.1.2 data column
+            add case button
+                dialog - warning no mesh can't add case
+                dialog - add case
+            case spinner
+            add data button
+                dialog - add data
+            datalist panel
+                data item
+        I.1.3 calculator column
+            calculator panel
+                data name and unit inputs
+                formula input
+                data type radio button
+                action buttons
+
+    I.2 plot screen
+        top buttons
+            new plot button
+                add tab dialog
+            add subplot button
+                add subplot dialog
+            save plot button
+                save plot dialog
+        plot tabs binder
+            plot tab
+            plot desk
+                fig/axes panel
+                    fig name button
+                        change name dialog
+                    axes list subPanel
+                        modify subplot dialog
+                            change plot content dialog
+                            change display range dialog
+                            change axes position dialog
+                            delet subplot dialog
+                            change plot region dialog (_2d_quad)
+                            change mesh overlay dialog (_2d_quad)
+                colorbar panel
+                    set colorbar button
+                        Set Colorbar Dialog
+                            add bin dialog
+                            import colorbar dialog
+                            save colorbar dialog
+                            colorbar settings dialog
+                    color code subpanel
+                        color code bin
+                            change bin dialog
+                                change color dialog
+                                change bin value dialog
+                fig display panel
+
+
+A brief description for each widget:
+
+I.GUI
+The application class is "PrototypeApp", referred to as "app" in .kv file
+The main class is "FrontEndGUI", referred to as "root" in .kv file. It is a ScreenManager and has two screens ("data_screen" and "plot_screen"), can switch back and forth between the two.
+
+I.1 data screen
+class "DataScreen". The data screen organizes all the data in a tree fashion. It consists of 3 panels, which from left to right are: mesh column, data column, calculator column
+
+I.1.1 mesh column
+The left most column, organizes the computation mesh(es), and various pure geometrical data pertaining to each mesh.
+
+I.1.1.1 add mesh button
+Once clicked, pops up the following dialog to import a mesh
+
+I.1.1.1.1 load mesh dialog
+class "LoadMeshDialog", a pop up dialog to import a mesh.
+
+I.1.1.2 mesh list panel
+class "MeshListPanel". It is a TreeView where each branch corresponds to a mesh
+
+I.1.1.2.1 mesh branch
+class "MeshBranchNode". A tree node corresponding to a mesh. Every node/branch as one mesh info child node and 0 or more geometry info child nodes
+
+I.1.1.2.1.1 mesh info
+class "MeshInfoNodeNode", displays basic informations about the mesh
+
+I.1.1.2.1.2 add geometry info button
+a button under the mesh info, once clicked displays the following popup
+
+I.1.1.2.1.2.1 add geometry data dialog
+class "LoadGeomDataDialog", a pop up dialog to import purely geometric data pertaining to the parent mesh
+
+I.1.1.2.1.3 geometry data/info node
+class "GeomInfoNodeNode", shows the variable name and unit of the purely geometric data
+
+I.1.2 data column
+The middle column. Each mesh(on the left) has its own data column in the middle, which can have multiple cases simulated using the same mesh but with different input parameters (when one does a parameter scan for example). Each case has a set of simulation data.
+
+I.1.2.1 add case button
+once clicked, shows one of the following two popups
+
+I.1.2.1.1 dialog - warning no mesh can't add case
+class "WarningCantAddDialog", the popup only shows up when no mesh has been imported, because a case must be added under some mesh.
+
+I.1.2.1.2 dialog - add case
+class "AddSOLPSDataDialog", a pop up to add a case under the current/highlited mesh, takes case name and description as text inputs.
+
+I.1.2.2 case spinner
+class "CaseSpinner", a spinner that toggles between the added cases. Each case has a set of data. When the text (case name) changes, the data list will also update.
+
+I.1.2.3 add data button
+displays the following popup to import simulation data
+
+I.1.2.3.1 dialog - add data
+class "AddSOLPSDataDialog", a dialog to import simulation data for the current/highlited case under the current/highlited mesh.
+
+I.1.2.4 datalist panel
+class "DataListPanel", a RecycleView that shows a list of data for the case
+
+I.1.2.4.1 data item
+class "DataItem", viewclass of the above recycleview. each one of this is a data entry/item in the list
+
+I.1.3 calculator column
+The right column of the data screen. The calculator can evaluate expressions (including numpy operations) and perform calculation on the imported data to get new data. The calculator button displays/hides the calculator on clicking.
+
+I.1.3.1 calculator panel
+class "Calculator", holds the calculator interface.
+
+I.1.3.1.1 data name and unit inputs
+text inputs for the calculated variable name and unit.
+
+I.1.3.1.2 formula input
+text input for the calculation expression. Variable names should be the same as the imported ones. The calculation uses the Python-built-in "eval" function.
+
+I.1.3.1.3 data type radio button
+class "CalculationVarableType_RadioButton", a radio button to choose whether the calculated variable will be purely geometric (pertaining to the mesh) or case sensitive simulation data (pertaining to the case).
+
+I.1.3.1.4 action buttons
+"calculate": performs the calculation and adds the calculated variable to the data set. "clear": clear the inputs. "help": to display the help message for instructions on how to use calculator, not available yet.
+
+I.2 plot screen
+class "PlotScreen". The plot screen is where the user can create, modify and save plots.
+
+I.2.1 top buttons
+4 buttons in the top row of the plot screen.
+
+I.2.1.1 new plot button
+displays the following dialog
+
+I.2.1.1.1 add tab dialog
+class "AddTabDialog", to add a new tab for a new plot, also to create a matplotlib Figure object.
+
+I.2.1.2 add subplot button
+displays the following dialog
+
+I.2.1.2.1 add subplot dialog
+class "AddSubplotDialog", to add a new matplotlib Axes object to the current Figure. The user selects mesh-case-data for the plot content.
+
+I.2.1.3 save plot button
+displays the following dialog
+
+I.2.1.3.1 save plot dialog
+class "SavePlotDialog", to save the current figure to a file.
+
+I.2.2 plot tabs binder
+class "PlotTabsBinder", a tabbed panel holds all plot tabs. User can switch between different plots by clicking the tabs.
+
+I.2.2.1 plot tab
+class "PlotTab", tab item of the above binder.
+
+I.2.2.2 plot desk
+class "PlotDesk_2d", the main plotting interface, has 3 panels/areas.
+
+I.2.2.2.1 fig/axes panel
+class "FigAxesPanel", the left panel of the plot desk interface, shows information about the figure and its axes
+
+I.2.2.2.1.1 fig name button
+a button that shows the name of the figure, pops up the following dialog that enables changing name
+
+I.2.2.2.1.1.1 change name dialog
+class "ChangeNameDialog", a simple dialog allows the user to change the figure name
+
+I.2.2.2.1.2 axes list subPanel
+class "AxesListSubPanel", a list(RecycleView) of information for each Axes of the Figure
+
+I.2.2.2.1.2.1 subplot item
+class "SubPlotItem_2d_quad", item of the above RecycleView. Each object has a botton, showing the name of the subplot/axes, followed by list of properties of the Axes object (e.g. size, location of Figure, etc.). Clicking the button will display the following dialog.
+
+I.2.2.2.1.2.2 modify subplot dialog
+class "ModifySubplotDialog_2d_quad", a dialog of a few buttons that allows the user to make various types of modification to the Axes. Clicking each button displays one of the following dialogs.
+
+I.2.2.2.1.2.2.1 change plot content dialog
+class "ChangePlotContentDialog", a dialog allows the user to change the content (plot data) of the Axes.
+
+I.2.2.2.1.2.2.2 change plot region dialog (_2d_quad)
+class "ChangePlotRegionDialog_2d_quad", a dialog allows the user to specify the various regions of a tokamak crossection to be plotted. The regions are separated by the separatrix of the magnetic flux surfaces.
+
+I.2.2.2.1.2.2.3 change mesh overlay dialog (_2d_quad)
+class "ChangeMeshOverlayDialog_2d_quad", a dialog allows the user to specify whether there will be a highlight to the mesh and which color to use.
+
+I.2.2.2.1.2.2.4 change display range dialog
+class "ChangeDisplayRangeDialog", a dialog allows the user to specify the display range of the Axes
+
+I.2.2.2.1.2.2.5 change axes position dialog
+class "ChangeAxesPositionDialog", a dialog allows the user to specify the Axes on the Figure object.
+
+I.2.2.2.1.2.2.6 delet subplot dialog
+class "DeleteSubplotDialog", a dialog allows the user to delete the selected Axes.
+
+I.2.2.2.2 colorbar panel
+class "ColorbarPanel_2d", the right panel of the plot desk interface, allows the user to customize the color bar for the 2D patch fill plots. The set colorbar button pops up the following dialog.
+
+I.2.2.2.2.1 Set Colorbar Dialog
+class "SetColorbarDialog", a dialog of a few buttons that allows the user to make various customization to the colorbar. Clicking each button displays one of the following dialogs.
+
+I.2.2.2.2.1.1 add bin dialog
+class "AddBinDialog", a dialog allows the user to add a bin to the color code. The specified color will be below the bin value and the bin will automatically find its position in the existing list of bins. If no bin exists yet, then it will add the first bin.
+
+I.2.2.2.2.1.2 import colorbar dialog
+class "ImportColorbarDialog", a dialog allows the user to directly import a colorbar (.cb file), saving the time of creating a new colorbar by adding one bin at a time.
+
+I.2.2.2.2.1.3 save colorbar dialog
+class "SaveColorbarDialog", a dialog allows the user to save the current colorbar to a .cb file for later use. The list of bin values and the color codes are in the .cb file.
+
+I.2.2.2.2.1.4 colorbar settings dialog
+class "ColorbarSettingsDialog", a dialog allows the user to specify whether to display the colorbar on the figure and the size and the position of the colorbar (Axes).
+
+I.2.2.2.2.2 color code subpanel
+class "ColorCodeSubpanel", a RecycleView that shows the bin values and the colors.
+
+I.2.2.2.2.2.1 color code bin
+class "ColorCodeBin", view item of the above RecycleView. Each item has a button showing the color and the bin value.
+
+I.2.2.2.2.2.1.1 change bin dialog
+class "ChangeBinDialog", a dialog allows the user to choose how to modify the color / bin throught the following two small dialogs.
+
+I.2.2.2.2.2.1.1.1 change color dialog
+class "ChangeColorDialog", a dialog allows the user to change the color using RGBA code.
+
+I.2.2.2.2.2.1.1.2 change bin value dialog
+class "ChangeBinValueDialog", a dialog allows the user to change the bin value. It will automatically sort list of bins, while the sequence of colors remain unchanged.
+
+I.2.2.2.3 fig display panel
+class "FigDisplayPanel", the middle panel of the plot desk interface, uses FigureCanvasKivyAgg to render the matplotlib Figure object, and displays it to the GUI.
+
+
+Part II. BDT
+class "BackendDataTracker" in .py file, referred to as "app.bdt" in .kv file.
+This class organizes all the simulation data in a tree hierarchy using nested dictionaries. The top level is simulation mesh, the second level is different cases simulated under each mesh and the bottom level is various data variables under the simulation case. There is also a set of purely geometrical data that only depend on the mesh (magnetic geometry) and they are directly under the mesh level.
+
+Each variable/data is a 2D numpy array. The first index is the y-index in SOLPS simulation which represents the flux surface index. The second index is the x-index, which represents the poloidal position.
+
+
+Part III. BPT
+class "BackendPlotTracker" in .py file, referred to as "app.bpt" in .kv file.
+This class has two major parts, the first organizes the figures and axes together with their settings.
+
+
+Part IV - custom modules (packages)
+A set of custom modules serving as packages, located in "./packages/"
+
+IV.1 data_classes
+These two classes reads the formatted SOLPS data files.
+
+IV.1.1 data2D
+This class reads formatted SOLPS 2D data (produced by b2plot script in SOLPS), and stores it in a 2D numpy array.
+
+IV.1.2 mesh
+This class reads formatted SOLPS mesh files (produced by the carre program in SOLPS). A SOLPS mesh is a 2D array of nonorthogonal quadillaterial cells following the magnetic field flux surfaces. The class stores all information about the mesh in various lists for easy access.
+
+IV.2 plot_classes
+These two classes deal with plot axes.
+
+IV.2.1 stainedglass
+This class draws the quadillaterial mesh and fills the cell according to the color code.
+
+IV.2.2 tangram
+This class holds the information of the colorbar: color codes and bin values, and maps each data value to the corresponding color code for plotting.
