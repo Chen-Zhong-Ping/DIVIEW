@@ -7,7 +7,8 @@ The purpose of this project is to make plotting SOLPS-ITER simulation data easy.
 2. A calculator allows the user to obtain new custom data using the standard data from the code.
 3. A versatile color code system gives the user full flexibility to customizing the colorbar.
 ## Demo
-![](demo/DEMO-gif.gif)
 A demo video with narrative is available on YouTube: https://youtu.be/wXtVWSxGmjo
+
+![](demo/DEMO-gif.gif)
 ## Source code structure
 Please refer to the document named "structure" for a general overview of the source code.
